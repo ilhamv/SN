@@ -1,0 +1,1 @@
+/usr/bin/c++      CMakeFiles/Point.dir/unit_test/test_Point.cpp.o  -o Point -rdynamic googletest-build/googlemock/gtest/libgtest_main.a googletest-build/googlemock/gtest/libgtest.a -pthread 

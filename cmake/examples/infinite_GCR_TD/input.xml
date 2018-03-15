@@ -1,0 +1,58 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+
+<simulation>
+    <description name="Infinite GCR" samples="4e7"/>
+    <tdmc time="3e-8 15e-8 4e-6 100e-6" split="5"/>
+</simulation>
+
+
+<distributions>
+    <delta name="pos" datatype="point" x="0.0" y="0.0" z="0.0" />
+    <isotropic name="dir" datatype="point" />
+    <delta name="enrg" datatype="double" val="14.1e6"/>
+</distributions>
+
+
+<nuclides>
+    <nuclide name="U-235" ZAID="092235"/>
+    <nuclide name="U-238" ZAID="092238"/>
+    <nuclide name="O-16"  ZAID="008016"/>
+    <nuclide name="C"     ZAID="006000"/>
+</nuclides>
+
+
+<materials>
+    <material name="Fuel">
+    	<nuclide name="U-235" density="0.0000402"/>
+    	<nuclide name="U-238" density="0.0009061"/>
+    	<nuclide name="O-16"  density="0.0018927"/>
+    	<nuclide name="C"     density="0.0757080"/>
+    </material>
+</materials>
+
+
+<surfaces>
+    <plane_x name="px1" x="100.0"  bc="reflective"/>
+    <plane_x name="px2" x="-100.0" bc="reflective"/>
+</surfaces>
+
+
+<cells>
+    <cell name="infinity" material="Fuel">
+        <surface name="px1" sense="-1" />
+        <surface name="px2" sense="+1" />
+    </cell>
+</cells>
+
+
+<sources>
+    <source position="pos" direction="dir" energy="enrg"/>
+</sources>
+
+
+<estimators>
+    <estimator name="spectrum" scores="flux">
+    	<cell name="infinity"/>
+	<filter type="energy" grid_lethargy="1E-5 2E7 320"/>
+    </estimator>
+</estimators>

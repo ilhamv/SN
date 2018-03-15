@@ -1,0 +1,121 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+
+<simulation>
+    <description name="Shielding w/ Variance Reduction - 1" samples="1e8"/>
+</simulation>
+
+
+<nuclides>
+    <nuclide name="O16" ZAID="008016"/>
+    <nuclide name="H1"  ZAID="001001"/>
+    <nuclide name="He3" ZAID="002003"/>
+    <nuclide name="C0"  ZAID="006000"/>
+    <nuclide name="B10" ZAID="005010"/>
+    <nuclide name="B11" ZAID="005011"/>
+</nuclides>
+
+
+<materials>
+    <material name="B4C">
+    	<nuclide name="B10" density="0.0219716"/>
+        <nuclide name="B11" density="0.0878864"/>
+        <nuclide name="C0"  density="0.027468"/>
+    </material>
+    
+    <material name="H2O">
+    	<nuclide name="H1"  density="0.066733"/>
+        <nuclide name="O16" density="0.033368"/>
+    </material>
+	
+    <material name="mat_detector">
+    	<nuclide name="He3" density="0.00002501"/>
+    </material>
+</materials>
+
+
+<surfaces>
+    <plane_x    name="px1" x="0.0"/>
+    <plane_x    name="px2" x="4.0"/>
+    <plane_x    name="px3" x="5.0"/>
+    <plane_x    name="px4" x="9.0"/>
+    <plane_y    name="py1" y="0.0"/>
+    <plane_y    name="py2" y="3.0"/>
+    <plane_y    name="py3" y="6.0"/>
+    <cylinder_z name="cz1" x="6.5" y="1.5" r="0.5"/>
+</surfaces>
+
+
+<cells>
+    <cell name="water1" material="H2O" importance="1.0">
+    	<surface name="px1" sense="+1"/>
+    	<surface name="px2" sense="-1"/>
+    	<surface name="py1" sense="+1"/>
+    	<surface name="py2" sense="-1"/>
+    </cell>
+
+    <cell name="water2" material="H2O" importance="1.0">
+    	<surface name="px1" sense="+1"/>
+    	<surface name="px2" sense="-1"/>
+    	<surface name="py2" sense="+1"/>
+    	<surface name="py3" sense="-1"/>
+    </cell>
+
+  	<cell name="water3" material="H2O" importance="1.0">
+    	<surface name="px2" sense="+1"/>
+    	<surface name="px4" sense="-1"/>
+    	<surface name="py2" sense="+1"/>
+    	<surface name="py3" sense="-1"/>
+    </cell>
+  	
+    <cell name="water4" material="H2O" importance="1.0">
+    	<surface name="px3" sense="+1"/>
+    	<surface name="px4" sense="-1"/>
+    	<surface name="py1" sense="+1"/>
+    	<surface name="py2" sense="-1"/>
+    	<surface name="cz1" sense="+1"/>
+    </cell>
+
+    <cell name="shield" material="B4C" importance="1.0">
+    	<surface name="px2" sense="+1"/>
+    	<surface name="px3" sense="-1"/>
+    	<surface name="py1" sense="+1"/>
+    	<surface name="py2" sense="-1"/>
+    </cell>
+	
+    <cell name="detector" material="mat_detector" importance="1.0">
+    	<surface name="cz1" sense="-1"/>
+    </cell>
+	
+    <cell name="left outside" importance="0.0">
+    	<surface name="px1" sense="-1"/>
+    </cell>
+  	
+    <cell name="right outside" importance="0.0">
+    	<surface name="px4" sense="+1"/>
+    </cell>
+
+    <cell name="down outside" importance="0.0">
+    	<surface name="py1" sense="-1"/>
+    </cell>
+	
+    <cell name="up outside" importance="0.0">
+    	<surface name="py3" sense="+1"/>
+    </cell>
+</cells>
+
+
+<estimators>
+    <estimator name="detector_response" scores="flux absorption">
+    	<cell  name="detector"/>
+    </estimator>
+</estimators>
+
+
+<distributions>
+    <delta name="enrg" datatype="double" val="2.0e6"/>
+</distributions>
+
+
+<sources>
+    <point x="1.5"  y="1.5"  z="0.0" energy="enrg"/>
+</sources>

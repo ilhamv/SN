@@ -1,0 +1,47 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+
+<simulation>
+    <description name="HEU Sphere" samples="1e4"/>
+    <ksearch active_cycles="180" passive_cycles="20"/>
+</simulation>
+
+
+<distributions>
+    <delta name="pos" datatype="point" x="0.0" y="0.0" z="0.0" />
+    <isotropic name="dir" datatype="point" />
+    <delta name="enrg" datatype="double" val="14.0e6"/>
+</distributions>
+
+
+<nuclides>
+    <nuclide name="U-235" ZAID="092235"/>
+    <nuclide name="U-238" ZAID="092238"/>
+</nuclides>
+
+
+<materials>
+    <material name="HEU">
+    	<nuclide name="U-235" density="0.0455112"/>
+    	<nuclide name="U-238" density="0.0033823"/>
+    </material>
+</materials>
+
+
+<surfaces>
+    <sphere name="suspicious_sphere"  x="0.0" y="0.0" z="0.0" r="7.68"/>
+</surfaces>
+
+
+<cells>
+    <cell name="sphere" material="HEU">
+        <surface name="suspicious_sphere" sense="-1" />
+    </cell>
+    <cell name="graveyard" importance="0.0">
+	<surface name="suspicious_sphere" sense="+1" />
+    </cell>
+</cells>
+
+
+<sources>
+    <source position="pos" direction="dir" energy="enrg"/>
+</sources>

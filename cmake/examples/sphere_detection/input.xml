@@ -1,0 +1,107 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+
+<simulation>
+    <description name="Detecting a Sphere" samples="1e7"/>
+</simulation>
+
+
+<nuclides>
+    <nuclide name="C0"  ZAID="006000"/>
+    <nuclide name="H1"  ZAID="001001"/>
+    <nuclide name="He3" ZAID="002003"/>
+</nuclides>
+
+
+<materials>
+    <material name="polyethylene">
+        <nuclide name="C0" density="0.039929"/>
+        <nuclide name="H1" density="0.079855"/>
+    </material>
+    <material name="helium3">
+        <nuclide name="He3" density="0.00002501"/>
+    </material>
+    <material name="graphite">
+        <nuclide name="C0" density="0.100280"/>
+    </material>                                                                                                    
+</materials>
+
+
+<surfaces>
+    <sphere     name="sp1"  x="0.0" y="0.0" z="0.0" r="4.0"/>
+    <plane_x    name="px1"  x="9.0"/>
+    <plane_x    name="px2"  x="24.0"/>
+    <cylinder_x name="cx1"  y="0.0" z="0.0" r="5.5"/> <!-- outer cylinder -->
+    <plane_x    name="px11" x="14.0"/>
+    <plane_x    name="px22" x="19.0"/>
+    <cylinder_x name="cx11" y="0.0" z="0.0" r="0.5"/> <!-- inner cylinder -->
+</surfaces>
+
+
+<cells>
+    <cell name="sphere" material="graphite">
+    	<surface name="sp1" sense="-1"/>
+    </cell>
+	
+    <cell name="detector" material="helium3">
+    	<surface name="px11" sense="+1"/>
+    	<surface name="px22" sense="-1"/>
+    	<surface name="cx11" sense="-1"/>
+    </cell>
+    
+    <cell name="moderator left" material="polyethylene">
+        <surface name="px1"  sense="+1"/>
+        <surface name="px11" sense="-1"/>
+	<surface name="cx1"  sense="-1"/>
+    </cell>
+    
+    <cell name="moderator mid" material="polyethylene">
+        <surface name="px11" sense="+1"/>
+        <surface name="px22" sense="-1"/>
+        <surface name="cx1" sense="-1"/>
+        <surface name="cx11" sense="+1"/>
+    </cell>
+    
+    <cell name="moderator right" material="polyethylene">
+      	<surface name="px22" sense="+1"/>
+      	<surface name="px2"  sense="-1"/>
+      	<surface name="cx1"  sense="-1"/>
+    </cell>
+  
+    <cell name="left vacuum">
+  	<surface name="sp1" sense="+1"/>
+  	<surface name="px1" sense="-1"/>
+    </cell>
+      
+    <cell name="middle vacuum" importance="0.0">
+  	<surface name="cx1" sense="+1"/>
+  	<surface name="px1" sense="+1"/>
+  	<surface name="px2" sense="-1"/>
+    </cell>
+
+    <cell name="right vacuum" importance="0.0">
+  	<surface name="px2" sense="+1"/>
+    </cell>
+</cells>
+
+
+<estimators>
+    <estimator name="detector_TL" scores="flux absorption" type="TL">
+    	<cell name="detector"/>
+    </estimator>
+</estimators>
+
+<estimators>
+    <estimator name="detector_C" scores="flux absorption" type="C">
+    	<cell name="detector"/>
+    </estimator>
+</estimators>
+
+<distributions>
+    <delta name="dir" datatype="point" x = "0.0" y = "0.0" z = "1.0"/>
+    <delta name="enrg" datatype="double" val="1.0e6"/>
+</distributions>
+
+
+<sources>
+    <disk_z x="-1.0"  y="0.0" z="-5.0" r="2.0" direction="dir" energy="enrg"/>
+</sources>

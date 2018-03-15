@@ -1,0 +1,79 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+
+<simulation>
+    <description name="Simple Slabs" samples="1e7"/>
+</simulation>
+
+
+<nuclides>
+    <nuclide name="nuc1">
+    	<capture xs="1.0"/>
+    </nuclide>
+
+    <nuclide name="nuc2">
+    	<capture xs="0.5"/>
+    </nuclide>
+	
+    <nuclide name="nuc3">
+    	<capture xs="2.0"/>
+    </nuclide>
+</nuclides>
+
+
+<materials>
+    <material name="mat1">
+    	<nuclide name="nuc1" density="0.5"/>
+    	<nuclide name="nuc2" density="1.0"/>
+    	<nuclide name="nuc3" density="0.1"/>
+    </material>
+  	
+    <material name="mat2">
+    	<nuclide name="nuc1" density="0.5"/>
+    	<nuclide name="nuc2" density="0.5"/>
+    </material>
+</materials>
+
+
+<surfaces>
+    <plane_x name="px1" x="0.0"/>
+    <plane_x name="px2" x="1.0"/>
+    <plane_x name="px3" x="5.0"/>
+</surfaces>
+
+
+<cells>
+    <cell name="slab1" material="mat1">
+    	<surface name="px1" sense="+1"/>
+    	<surface name="px2" sense="-1"/>
+    </cell>
+	
+    <cell name="slab2" material="mat2">
+    	<surface name="px2" sense="+1"/>
+    	<surface name="px3" sense="-1"/>
+    </cell>
+
+    <cell name="left outside" importance="0.0">
+    	<surface name="px1" sense="-1"/>
+    </cell>
+  	
+    <cell name="right outside" importance="0.0">
+    	<surface name="px3" sense="+1"/>
+    </cell>
+</cells>
+
+
+<distributions>
+    <delta name="dir" datatype="point" x = "1.0" y = "0.0" z = "0.0"/>
+</distributions>
+
+
+<sources>
+    <point x="1e-9" y="0.0" z="0.0" direction="dir"/>
+</sources>
+
+
+<estimators>
+    <estimator name="leak_rate" scores="cross">
+    	<surface name="px3"/>
+    </estimator>
+</estimators>

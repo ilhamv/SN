@@ -1,0 +1,35 @@
+Determining if the pthread_create exist failed with the following output:
+Change Dir: /home/ilham/Work/MC/cmake/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/make" "cmTC_eb937/fast"
+/usr/bin/make -f CMakeFiles/cmTC_eb937.dir/build.make CMakeFiles/cmTC_eb937.dir/build
+make[1]: Entering directory '/home/ilham/Work/MC/cmake/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_eb937.dir/CheckSymbolExists.c.o
+/usr/bin/cc     -o CMakeFiles/cmTC_eb937.dir/CheckSymbolExists.c.o   -c /home/ilham/Work/MC/cmake/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+Linking C executable cmTC_eb937
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_eb937.dir/link.txt --verbose=1
+/usr/bin/cc       CMakeFiles/cmTC_eb937.dir/CheckSymbolExists.c.o  -o cmTC_eb937 -rdynamic 
+CMakeFiles/cmTC_eb937.dir/CheckSymbolExists.c.o: In function `main':
+CheckSymbolExists.c:(.text+0x16): undefined reference to `pthread_create'
+collect2: error: ld returned 1 exit status
+CMakeFiles/cmTC_eb937.dir/build.make:97: recipe for target 'cmTC_eb937' failed
+make[1]: *** [cmTC_eb937] Error 1
+make[1]: Leaving directory '/home/ilham/Work/MC/cmake/CMakeFiles/CMakeTmp'
+Makefile:126: recipe for target 'cmTC_eb937/fast' failed
+make: *** [cmTC_eb937/fast] Error 2
+
+File /home/ilham/Work/MC/cmake/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
+/* */
+#include <pthread.h>
+
+int main(int argc, char** argv)
+{
+  (void)argv;
+#ifndef pthread_create
+  return ((int*)(&pthread_create))[argc];
+#else
+  (void)argc;
+  return 0;
+#endif
+}
+
