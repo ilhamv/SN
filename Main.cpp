@@ -12,8 +12,9 @@
 #include "Objects.h"
 
 
-// The GLR algorithm to compute quadrature sets
-void legendre_compute_glr ( int n, double x[], double w[] );
+//==========================================================================
+// Parser tools
+//==========================================================================
 
 // Parsing space(s) delimited strings into vector
 template<class T>
@@ -26,18 +27,21 @@ std::vector<T> parse_vector(std::string const& pointLine)
                          };
 }
 
-// Maximum relative error of two vectors
-double maximum_relative_error( const std::vector<double>& phi,
-                               const std::vector<double>& phi_old )
+// Find object pointer by id number
+template< typename T >
+std::shared_ptr<T> find_by_id( const std::vector<std::shared_ptr<T>>& vec,
+                               const int id )
 {
-    double emax = 0; double val;
-    for( int j = 0; j < phi.size(); j++ ){
-        val = std::abs( phi[j] - phi_old[j] ) 
-              / ( std::abs(phi[j]) + std::numeric_limits<double>::epsilon() );
-        if( val > emax ){ emax = val; }
-    }   
-    return emax;
+    for ( auto& v : vec ){
+	if ( v->id() == id ) { return v; }
+    }
+    return nullptr;
 }
+
+
+//==========================================================================
+// Miscellany
+//==========================================================================
 
 double norm_2( const std::vector<double> v )
 {
@@ -49,15 +53,10 @@ double norm_2( const std::vector<double> v )
     return norm;
 }
 
-template< typename T >
-std::shared_ptr<T> find_by_id( const std::vector<std::shared_ptr<T>>& vec,
-                               const int id )
-{
-    for ( auto& v : vec ){
-	if ( v->id() == id ) { return v; }
-    }
-    return nullptr;
-}
+// The GLR algorithm to compute quadrature sets
+void legendre_compute_glr ( int n, double x[], double w[] );
+
+
 
 int main( int argc, char* argv[] )
 {
