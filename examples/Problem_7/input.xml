@@ -1,14 +1,14 @@
 <?xml version = '1.0' encoding = 'UTF-8'?>
 
 
-<quadrature> 8 </quadrature>
-<convergence> 1E-6 </convergence>
+<N> 8 </N>
+<epsilon> 1E-6 </epsilon>
 
-<edge> 0.0 10.0 </edge>
+<space> 10.0 </space>
 <mesh> 50 </mesh>
 
-<total> 1.0 </total>
-<scatter> 0.6 </scatter>
-<source> 0.1 </source>
+<SigmaT> 1.0 </SigmaT>
+<SigmaS> 0.6 </SigmaS>
+<Q> 0.1 </Q>
 
-<bc> 0 1 </bc>
+<bc> vacuum reflective </bc>
