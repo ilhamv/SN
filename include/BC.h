@@ -27,3 +27,26 @@ class BCReflective : public BC
         ~BCReflective() {};
         void set_boundary( std::vector<double>& psi );
 };
+
+class BCIsotropic : public BC
+{
+    private:
+        const double magnitude;
+
+    public:
+        BCIsotropic( const double m ): BC("Isotropic"), magnitude(m) {};
+        ~BCIsotropic() {};
+        void set_boundary( std::vector<double>& psi );
+};
+
+class BCMonoDirectional : public BC
+{
+    private:
+        const std::vector<double> psi_b;
+
+    public:
+        BCMonoDirectional( const std::vector<double>& p ): 
+            BC("Isotropic"), psi_b(p) {};
+        ~BCMonoDirectional() {};
+        void set_boundary( std::vector<double>& psi );
+};

@@ -82,21 +82,6 @@ int main( int argc, char* argv[] )
     const std::vector<double> R_Q      = parse_vector<double>
                                          ( input_file.child_value("Q") );
 
-    // Boundary conditions
-    std::shared_ptr<BC> BC_left, BC_right;
-    
-    for( auto bc : input_file.child("bc").children() ){
-        std::shared_ptr<BC> BC_set;
-        const std::string bc_type = bc.attribute("type").value();
-        if( bc_type == "vacuum" ){
-            BC_set = std::make_shared<BCVacuum>();
-        } else if( bc_type == "reflective" ){
-            BC_set = std::make_shared<BCReflective>();
-        }
-        if( std::string(bc.name()) == "left" )  { BC_left  = BC_set; }
-        if( std::string(bc.name()) == "right" ) { BC_right = BC_set; }
-    }
-
 
     //==========================================================================
     // The quadrature sets
@@ -107,6 +92,41 @@ int main( int argc, char* argv[] )
     
     // Calling the GLR algorithm
     legendre_compute_glr( N, &mu[0], &w[0]);
+
+    
+    //==========================================================================
+    // The boundary conditions
+    //==========================================================================
+
+    std::shared_ptr<BC> BC_left, BC_right;
+    
+    for( auto bc : input_file.child("bc").children() ){
+        std::shared_ptr<BC> BC_set;
+        const std::string bc_type = bc.attribute("type").value();
+        const std::string bc_side = bc.name();
+
+        if( bc_type == "vacuum" ){
+            BC_set = std::make_shared<BCVacuum>();
+        } else if( bc_type == "reflective" ){
+            BC_set = std::make_shared<BCReflective>();
+        } else if( bc_type == "isotropic" ){
+            const double magnitude = bc.attribute("magnitude").as_double();
+            BC_set = std::make_shared<BCIsotropic>(magnitude);
+        } else if( bc_type == "mono" ){
+            const double magnitude = bc.attribute("magnitude").as_double();
+            const double bc_mu     = bc.attribute("mu").as_double();
+            std::vector<double> psi_b( N/2, 0.0 );
+            for( int n = 0; n < N; n++ ){
+                if( mu[n] - w[n]/2 <= bc_mu && bc_mu <= mu[n] + w[n]/2 ){
+                    if( bc_side == "left" ) { psi_b[n-N/2] = magnitude/w[n]; break;}
+                    if( bc_side == "right" ){ psi_b[n] = magnitude/w[n]; break;}
+                }
+            }
+            BC_set = std::make_shared<BCMonoDirectional>(psi_b);
+        }
+        if( bc_side == "left" )  { BC_left  = BC_set; }
+        if( bc_side == "right" ) { BC_right = BC_set; }
+    }
 
 
     //==========================================================================
@@ -150,41 +170,6 @@ int main( int argc, char* argv[] )
         }
     }
 
-    
-    //==========================================================================
-    // Set angular flux B.C.
-    //==========================================================================
-/*
-    // Angular flux at boundary (default: vacuum)
-    std::vector<double> psi_left( N/2, 0.0 );
-    std::vector<double> psi_right( N/2, 0.0 );
-
-    // Reflective boundary is treated with toggle "reflect"
-
-    // Isotropic
-    for( int i = 0; i < 2; i++ ){ 
-        if( bc[i] == "isotropic" ){
-            for( int n = 0; n < N/2; n++ ){
-                if( i == 0 ) { psi_left[n] = 1.0; }
-                if( i == 1 ) { psi_right[n] = 1.0; }
-            }
-        }
-    }
-
-    // Monodirectional
-    for( int i = 0; i < 2; i++ ){ 
-        if( bc[i] != "vacuum" && bc[i] != "reflective" && bc[i] != "isotropic" )
-        {
-            const double psi_b = std::stod( bc[i] );
-            for( int n = 0; n < N; n++ ){
-                if( mu[n] - w[n]/2 <= psi_b && psi_b <= mu[n] + w[n]/2 ){
-                    if( i == 0 ){ psi_left[n-N/2] = 1.0/w[n]; break;}
-                    if( i == 1 ){ psi_right[n] = 1.0/w[n]; break;}
-                }
-            }
-        }
-    }
-*/
 
     //==========================================================================
     // The Source Iteration
@@ -327,7 +312,7 @@ int main( int argc, char* argv[] )
     dataset.write(w.data(), type_double);
     
     // Spectral radius estimates
-    rho[0] = 1.0;
+    rho.erase(rho.begin());
     dims[0] = rho.size();
     space_vector = H5::DataSpace(1,dims);
     dataset = output.createDataSet( "spectral_radius",type_double,space_vector);

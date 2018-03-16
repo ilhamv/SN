@@ -14,7 +14,7 @@ plt.xlabel("z, cm");
 plt.ylabel("Scalar flux, /cm^2.s");
 plt.show();
 
-l = np.arange(1,len(rho)+1);
+l = np.arange(2,len(rho)+2);
 plt.plot(l,rho, 'o');
 plt.title("Spectral Radius");
 plt.xlabel("Iteration #");
