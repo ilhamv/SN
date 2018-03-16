@@ -4,12 +4,22 @@
 <N> 8 </N>
 <epsilon> 1E-6 </epsilon>
 
-<space> 10.0 </space>
-<mesh> 50 </mesh>
 
-<SigmaT> 1.0 </SigmaT>
-<SigmaS> 0.6 </SigmaS>
-<Q> 0.1 </Q>
+<materials>
+    <material id="1" name="fuel">
+        <total   xs="1.0"/>
+        <scatter xs="0.6"/>
+    </material>
+</materials>
+
+
+<region>
+    <space> 10.0 </space>
+    <mesh> 50 </mesh>
+    <material> 1 </material>
+    <source> 0.1 </source>
+</region>
+
 
 <bc> 
     <left  type="vacuum"/>

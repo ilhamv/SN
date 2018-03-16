@@ -4,14 +4,30 @@
 <N> 8 </N>
 <epsilon> 1E-6 </epsilon>
 
-<space> 10.0 </space>
-<mesh> 50 </mesh>
 
-<SigmaT> 1.0 </SigmaT>
-<SigmaS> 0.6 </SigmaS>
-<Q> 0.1 </Q>
+<materials>
+    <material id="1" name="fuel">
+        <total   xs="1.0"/>
+        <scatter xs="0.6"/>
+    </material>
+
+    <material id="2" name="reflector">
+        <total   xs="1.0"/>
+        <scatter xs="0.8"/>
+    </material>
+</materials>
+
+
+<region>
+    <space> 5.0 10.0 5.0 </space>
+    <mesh> 25 50 25 </mesh>
+    <material> 2 1 2 </material>
+    <source> 0.0 0.1 0.0 </source>
+</region>
+
 
 <bc> 
     <left  type="isotropic" magnitude="0.12"/>
     <right type="mono" magnitude="0.1" mu="-0.8"/>
 </bc>
+

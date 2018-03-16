@@ -9,7 +9,7 @@
 
 #include "pugixml.hpp"
 #include "H5Cpp.h"
-#include "BC.h"
+#include "Objects.h"
 
 
 // The GLR algorithm to compute quadrature sets
@@ -49,6 +49,16 @@ double norm_2( const std::vector<double> v )
     return norm;
 }
 
+template< typename T >
+std::shared_ptr<T> find_by_id( const std::vector<std::shared_ptr<T>>& vec,
+                               const int id )
+{
+    for ( auto& v : vec ){
+	if ( v->id() == id ) { return v; }
+    }
+    return nullptr;
+}
+
 int main( int argc, char* argv[] )
 {
     //==========================================================================
@@ -67,24 +77,84 @@ int main( int argc, char* argv[] )
     const int          N = std::stoi( input_file.child_value("N") );
     const double epsilon = std::stod( input_file.child_value("epsilon") );
 
-    // Region edges and number of meshes
-    const std::vector<double> R_space = parse_vector<double>
-                                        ( input_file.child_value("space") );
-    const std::vector<int>    R_mesh  = parse_vector<int>
-                                        ( input_file.child_value("mesh") );
-    const int N_region = R_mesh.size();
 
-    // Region properties
-    const std::vector<double> R_SigmaT = parse_vector<double>
-                                         ( input_file.child_value("SigmaT") );
-    const std::vector<double> R_SigmaS = parse_vector<double>
-                                         ( input_file.child_value("SigmaS") );
-    const std::vector<double> R_Q      = parse_vector<double>
-                                         ( input_file.child_value("Q") );
+    //==========================================================================
+    // Materials
+    //==========================================================================
+    
+    std::vector<std::shared_ptr<Material>> material;
+
+    for( auto m : input_file.child("materials").children("material") ){
+        const int         m_id      = m.attribute("id").as_int();
+        const std::string m_name    = m.attribute("name").value();
+        const double      m_total   = m.child("total").
+                                        attribute("xs").as_double();
+        const double      m_scatter = m.child("scatter").
+                                        attribute("xs").as_double();
+        material.push_back( std::make_shared<Material>( m_id, m_name, 
+                                                        m_total, m_scatter ) );
+    }
+
+    //==========================================================================
+    // Regions
+    //==========================================================================
+    
+    std::vector<std::shared_ptr<Region>> region;
+    
+    pugi::xml_node input_region = input_file.child("region");
+
+    // Region space, number of meshes, material number, and source strength
+    const std::vector<double> r_space = parse_vector<double>
+                                        ( input_region.child_value("space") );
+    const std::vector<int> r_mesh = parse_vector<int>
+                                    ( input_region.child_value("mesh") );
+    const std::vector<int> r_material = parse_vector<int>
+                                        ( input_region.child_value("material"));
+    const std::vector<double> r_Q = parse_vector<double>
+                                    ( input_region.child_value("source") );
+    const int N_region = r_space.size();
+
+    // Set up region properties
+    for( int i = 0; i < N_region; i++ ){
+        const double r_dz = r_space[i] / r_mesh[i];
+        const std::shared_ptr<Material> r_M = 
+                                          find_by_id( material, r_material[i] );
+        region.push_back( std::make_shared<Region>( r_M, r_dz, r_Q[i] ));
+    }
 
 
     //==========================================================================
-    // The quadrature sets
+    // Meshes
+    //==========================================================================
+
+    std::vector<std::shared_ptr<Mesh>> mesh;
+
+    int idx; // Index helper
+
+    // # of meshes
+    int J = 0;
+    for( int i = 0; i < N_region; i++ ){ J += r_mesh[i]; }
+    mesh.resize(J);
+
+    // Point mesh to the corresponding region
+    idx = 0;
+    for( int i = 0; i < N_region; i++ ){
+        for( int j = 0; j < r_mesh[i]; j++ ){
+            mesh[idx] = std::make_shared<Mesh>(region[i]);
+            idx++;
+        }
+    }
+
+    // Center points
+    std::vector<double> z(J);
+    z[0] = 0.5 * mesh[0]->dz();
+    for( int j = 1; j < J; j++ ){
+        z[j] = z[j-1] + 0.5 * ( mesh[j-1]->dz() + mesh[j]->dz() );
+    }
+
+
+    //==========================================================================
+    // Quadrature sets
     //==========================================================================
 
     std::vector<double> mu(N);
@@ -95,7 +165,7 @@ int main( int argc, char* argv[] )
 
     
     //==========================================================================
-    // The boundary conditions
+    // Boundary conditions
     //==========================================================================
 
     std::shared_ptr<BC> BC_left, BC_right;
@@ -118,7 +188,7 @@ int main( int argc, char* argv[] )
             std::vector<double> psi_b( N/2, 0.0 );
             for( int n = 0; n < N; n++ ){
                 if( mu[n] - w[n]/2 <= bc_mu && bc_mu <= mu[n] + w[n]/2 ){
-                    if( bc_side == "left" ) { psi_b[n-N/2] = magnitude/w[n]; break;}
+                    if( bc_side == "left" ) {psi_b[n-N/2]=magnitude/w[n];break;}
                     if( bc_side == "right" ){ psi_b[n] = magnitude/w[n]; break;}
                 }
             }
@@ -126,48 +196,6 @@ int main( int argc, char* argv[] )
         }
         if( bc_side == "left" )  { BC_left  = BC_set; }
         if( bc_side == "right" ) { BC_right = BC_set; }
-    }
-
-
-    //==========================================================================
-    // The meshes
-    //==========================================================================
-
-    int idx; // Index helper
-
-    // # of meshes
-    int J = 0;
-    for( int i = 0; i < N_region; i++ ){ J += R_mesh[i]; }
-
-    // Mesh size
-    idx = 0;
-    std::vector<double> dz(J);
-    for( int i = 0; i < N_region; i++ ){
-        for( int j = 0; j < R_mesh[i]; j++ ){
-            dz[idx] = R_space[i] / R_mesh[i];
-            idx++;
-        }
-    }
-
-    // Center points
-    std::vector<double> z(J);
-    z[0] = 0.5 * dz[0];
-    for( int j = 1; j < J; j++ ){
-        z[j] = z[j-1] + 0.5 * ( dz[j-1] + dz[j] );
-    }
-
-    // Mesh properties
-    std::vector<double> SigmaT(J);
-    std::vector<double> SigmaS(J);
-    std::vector<double> Q(J);
-    idx = 0;
-    for( int i = 0; i < N_region; i++ ){
-        for( int j = 0; j < R_mesh[i]; j++ ){
-            SigmaT[idx] = R_SigmaT[i];
-            SigmaS[idx] = R_SigmaS[i];
-            Q[idx]      = R_Q[i];
-            idx++;
-        }
     }
 
 
@@ -189,7 +217,7 @@ int main( int argc, char* argv[] )
 
         // RHS source (note: isotropic)
         for( int j = 0; j < J; j++ ){
-            S[j] = 0.5 * ( SigmaS[j] * phi[j] + Q[j] );
+            S[j] = 0.5 * ( mesh[j]->SigmaS() * phi[j] + mesh[j]->Q() );
         }
 
         // Old phi
@@ -209,9 +237,9 @@ int main( int argc, char* argv[] )
             idx = 0; // Index for psi, as its size is N/2
             for( int n = 0.5*N; n < N; n++ ){
                 psi_avg = psi[idx];
-                psi[idx] = ( (mu[n] - 0.5 * SigmaT[j] * dz[j] ) * psi[idx]
-                             + S[j] * dz[j] )
-                           / ( mu[n] + 0.5 * SigmaT[j] * dz[j] );
+                psi[idx] = ( (mu[n] - 0.5 * mesh[j]->SigmaT() * mesh[j]->dz() ) 
+                             * psi[idx] + S[j] * mesh[j]->dz() )
+                           / ( mu[n] + 0.5 * mesh[j]->SigmaT() * mesh[j]->dz());
                 psi_avg = (psi_avg + psi[idx]) * w[n];
                 phi[j] += psi_avg;
                 idx++;
@@ -229,9 +257,9 @@ int main( int argc, char* argv[] )
         for( int j = J-1; j >= 0; j-- ){
             for( int n = 0; n < 0.5*N; n++ ){
                 psi_avg = psi[n];
-                psi[n] = ( ( -mu[n] - 0.5 * SigmaT[j] * dz[j] ) * psi[n]
-                           + S[j] * dz[j] )
-                         / ( -mu[n] + 0.5 * SigmaT[j] * dz[j] );
+                psi[n] = ( ( -mu[n] - 0.5 * mesh[j]->SigmaT() * mesh[j]->dz() ) 
+                           * psi[n] + S[j] * mesh[j]->dz() )
+                         / ( -mu[n] + 0.5 * mesh[j]->SigmaT() * mesh[j]->dz() );
                 psi_avg = (psi_avg + psi[n]) * w[n];
                 phi[j] += psi_avg;
             }
@@ -286,18 +314,7 @@ int main( int argc, char* argv[] )
     dataset.write(&epsilon, type_double);
     dataset = output.createDataSet( "N_iter", type_double, space_scalar );
     dataset.write(&N_iter, type_double);
-    dims[0] = N_region;
-    space_vector = H5::DataSpace(1,dims);
-    dataset = output.createDataSet( "space", type_double, space_vector);
-    dataset.write(R_space.data(), type_double);
-    dataset = output.createDataSet( "mesh", type_int, space_vector);
-    dataset.write(R_mesh.data(), type_int);
-    dataset = output.createDataSet( "SigmaT", type_double, space_vector);
-    dataset.write(R_SigmaT.data(), type_double);
-    dataset = output.createDataSet( "SigmaS", type_double, space_vector);
-    dataset.write(R_SigmaS.data(), type_double);
-    dataset = output.createDataSet( "Q", type_double, space_vector);
-    dataset.write(R_Q.data(), type_double);
+    // Material, Region, Mesh
     dataset = output.createDataSet( "bc_left", type_string, space_scalar);
     dataset.write(BC_left->type(), type_string);
     dataset = output.createDataSet( "bc_right", type_string, space_scalar);
