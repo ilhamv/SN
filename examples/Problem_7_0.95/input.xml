@@ -8,7 +8,10 @@
 <mesh> 50 </mesh>
 
 <SigmaT> 1.0 </SigmaT>
-<SigmaS> 0.6 </SigmaS>
+<SigmaS> 0.95 </SigmaS>
 <Q> 0.1 </Q>
 
-<bc> vacuum reflective </bc>
+<bc> 
+    <left  type="vacuum"/>
+    <right type="reflective"/>
+</bc>

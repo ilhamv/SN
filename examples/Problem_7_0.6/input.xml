@@ -1,0 +1,17 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+
+
+<N> 8 </N>
+<epsilon> 1E-6 </epsilon>
+
+<space> 10.0 </space>
+<mesh> 50 </mesh>
+
+<SigmaT> 1.0 </SigmaT>
+<SigmaS> 0.6 </SigmaS>
+<Q> 0.1 </Q>
+
+<bc> 
+    <left  type="vacuum"/>
+    <right type="reflective"/>
+</bc>
