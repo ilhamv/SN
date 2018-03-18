@@ -126,7 +126,7 @@ int main( int argc, char* argv[] )
     // Meshes
     //==========================================================================
 
-    std::vector<std::shared_ptr<Mesh>> mesh;
+    std::vector<std::shared_ptr<Region>> mesh;
 
     int idx; // Index helper
 
@@ -139,7 +139,7 @@ int main( int argc, char* argv[] )
     idx = 0;
     for( int i = 0; i < N_region; i++ ){
         for( int j = 0; j < r_mesh[i]; j++ ){
-            mesh[idx] = std::make_shared<Mesh>(region[i]);
+            mesh[idx] = region[i];
             idx++;
         }
     }

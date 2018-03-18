@@ -52,23 +52,6 @@ class Region
         std::shared_ptr<Material> material() { return M; }
 };
 
-//==============================================================================
-// Mesh
-//==============================================================================
-
-class Mesh
-{
-    private:
-        const std::shared_ptr<Region> R;
-    public:
-        Mesh( const std::shared_ptr<Region>& r ): R(r) {};
-        ~Mesh() {};
-        double SigmaT() { return R->SigmaT(); }
-        double SigmaS() { return R->SigmaS(); }
-        double dz() { return R->dz(); }
-        double Q() { return R->Q(); }
-};
-
 
 //==============================================================================
 // Boundary Condition
