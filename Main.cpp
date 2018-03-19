@@ -187,8 +187,10 @@ int main( int argc, char* argv[] )
             std::vector<double> psi_b( N/2, 0.0 );
             for( int n = 0; n < N; n++ ){
                 if( mu[n] - w[n]/2 <= bc_mu && bc_mu <= mu[n] + w[n]/2 ){
-                    if( bc_side == "left" ) {psi_b[n-N/2]=magnitude/w[n];break;}
-                    if( bc_side == "right" ){ psi_b[n] = magnitude/w[n]; break;}
+                    const double val = bc_mu * magnitude / mu[n] / w[n];
+                    if( bc_side == "left" ){ psi_b[n-N/2] = val; }
+                    if( bc_side == "right" ){ psi_b[n] = val; }
+                    break;
                 }
             }
             BC_set = std::make_shared<BCMonoDirectional>(psi_b);
