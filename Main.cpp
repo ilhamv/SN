@@ -284,7 +284,7 @@ int main( int argc, char* argv[] )
         rho.push_back( rho_num/rho_denom );
         rho_denom = rho_num;
 
-    } while ( error > epsilon );
+    } while ( error > ( 1.0 - rho.back() ) * epsilon );
 
     // Some outputs
     const int N_iter = rho.size();
