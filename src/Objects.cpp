@@ -24,5 +24,6 @@ void BCIsotropic::set_boundary( std::vector<double>& psi )
 // Mono Directional
 void BCMonoDirectional::set_boundary( std::vector<double>& psi )
 {
-    psi = psi_b;
+    std::fill(psi.begin(), psi.end(), 0.0);
+    psi[idx] = val;
 }

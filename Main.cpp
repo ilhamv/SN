@@ -184,16 +184,17 @@ int main( int argc, char* argv[] )
         } else if( bc_type == "mono" ){
             const double magnitude = bc.attribute("magnitude").as_double();
             const double bc_mu     = bc.attribute("mu").as_double();
-            std::vector<double> psi_b( N/2, 0.0 );
+            double b_val;
+            unsigned long long b_idx;
             for( int n = 0; n < N; n++ ){
                 if( mu[n] - w[n]/2 <= bc_mu && bc_mu <= mu[n] + w[n]/2 ){
-                    const double val = bc_mu * magnitude / mu[n] / w[n];
-                    if( bc_side == "left" ){ psi_b[n-N/2] = val; }
-                    if( bc_side == "right" ){ psi_b[n] = val; }
+                    b_val = bc_mu * magnitude / mu[n] / w[n];
+                    if( bc_side == "left" ){ b_idx = n-N/2; }
+                    if( bc_side == "right" ){ b_idx = n; }
                     break;
                 }
             }
-            BC_set = std::make_shared<BCMonoDirectional>(psi_b);
+            BC_set = std::make_shared<BCMonoDirectional>(b_val, b_idx);
         }
         if( bc_side == "left" )  { BC_left  = BC_set; }
         if( bc_side == "right" ) { BC_right = BC_set; }
