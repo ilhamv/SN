@@ -1,61 +1,15 @@
 #include <iostream>
 #include <cstring> 
-#include <iterator>
 #include <vector>
-#include <sstream>
 #include <cmath>
 #include <limits> 
 #include <memory>
 
 #include "pugixml.hpp"
 #include "H5Cpp.h"
+
 #include "Objects.h"
-
-
-//==========================================================================
-// Parser tools
-//==========================================================================
-
-// Parsing space(s) delimited strings into vector
-template<class T>
-std::vector<T> parse_vector(std::string const& pointLine)
-{
-    std::istringstream iss(pointLine);
-
-    return std::vector<T>{ std::istream_iterator<T>(iss), 
-                           std::istream_iterator<T>()
-                         };
-}
-
-// Find object pointer by id number
-template< typename T >
-std::shared_ptr<T> find_by_id( const std::vector<std::shared_ptr<T>>& vec,
-                               const int id )
-{
-    for ( auto& v : vec ){
-	if ( v->id() == id ) { return v; }
-    }
-    return nullptr;
-}
-
-
-//==========================================================================
-// Miscellany
-//==========================================================================
-
-double norm_2( const std::vector<double> v )
-{
-    double norm = 0.0;
-    for( int i = 0; i < v.size(); i++ ){
-        norm += v[i]*v[i];
-    }
-    norm = std::sqrt(norm);
-    return norm;
-}
-
-// The GLR algorithm to compute quadrature sets
-void legendre_compute_glr ( int n, double x[], double w[] );
-
+#include "Algorithm.h"
 
 
 int main( int argc, char* argv[] )
@@ -72,9 +26,19 @@ int main( int argc, char* argv[] )
     pugi::xml_document input_file;
     input_file.load_file(input_name.c_str());
 
-    // Quadrature and convergence criterion
-    const int          N = std::stoi( input_file.child_value("N") );
+
+    //==========================================================================
+    // Method descriptions
+    //==========================================================================
+
+    // Quadrature
+    const int N = std::stoi( input_file.child_value("N") );
+    
+    // Convergence criterion
     const double epsilon = std::stod( input_file.child_value("epsilon") );
+
+    // Spatial discretization method
+    const std::string method = input_file.child_value("method");
 
 
     //==========================================================================
@@ -93,6 +57,7 @@ int main( int argc, char* argv[] )
         material.push_back( std::make_shared<Material>( m_id, m_name, 
                                                         m_total, m_scatter ) );
     }
+
 
     //==========================================================================
     // Regions
@@ -161,6 +126,31 @@ int main( int argc, char* argv[] )
     
     // Calling the GLR algorithm
     legendre_compute_glr( N, &mu[0], &w[0]);
+
+
+    //==========================================================================
+    // Alpha of regions
+    //==========================================================================
+
+    // Set size (default: DD)
+    for( int i = 0; i < N_region; i++ ){
+        region[i]->alpha.resize(N, 0.0);
+        
+        if( method == "step" ){
+            for( int n = 0; n < N; n++ ){
+                if( mu[n] > 0 ){ region[i]->alpha[n] = 1.0; }
+                else           { region[i]->alpha[n] = -1.0; }
+            }
+        }
+        else if( method == "SC" ){
+            for( int n = 0; n < N; n++ ){
+                const double tau = region[i]->tau();
+                const double mu2 = 2.0 * mu[n];
+                region[i]->alpha[n] = 1.0 / std::tanh( tau / mu2  ) 
+                                      - ( mu2 / tau );
+            }
+        }
+    }
 
     
     //==========================================================================
@@ -239,9 +229,9 @@ int main( int argc, char* argv[] )
             idx = 0; // Index for psi, as its size is N/2
             for( int n = 0.5*N; n < N; n++ ){
                 psi_avg = psi[idx];
-                psi[idx] = ( (mu[n] - 0.5 * mesh[j]->SigmaT() * mesh[j]->dz() ) 
+                psi[idx] = ( (mu[n] - 0.5 * mesh[j]->tau() ) 
                              * psi[idx] + S[j] * mesh[j]->dz() )
-                           / ( mu[n] + 0.5 * mesh[j]->SigmaT() * mesh[j]->dz());
+                           / ( mu[n] + 0.5 * mesh[j]->tau() );
                 psi_avg = (psi_avg + psi[idx]) * w[n];
                 phi[j] += psi_avg;
                 idx++;
@@ -259,9 +249,9 @@ int main( int argc, char* argv[] )
         for( int j = J-1; j >= 0; j-- ){
             for( int n = 0; n < 0.5*N; n++ ){
                 psi_avg = psi[n];
-                psi[n] = ( ( -mu[n] - 0.5 * mesh[j]->SigmaT() * mesh[j]->dz() ) 
+                psi[n] = ( ( -mu[n] - 0.5 * mesh[j]->tau() ) 
                            * psi[n] + S[j] * mesh[j]->dz() )
-                         / ( -mu[n] + 0.5 * mesh[j]->SigmaT() * mesh[j]->dz() );
+                         / ( -mu[n] + 0.5 * mesh[j]->tau() );
                 psi_avg = (psi_avg + psi[n]) * w[n];
                 phi[j] += psi_avg;
             }

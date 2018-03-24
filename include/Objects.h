@@ -39,17 +39,23 @@ class Region
         const std::shared_ptr<Material> M;
         const double r_dz;
         const double r_Q;
-
+        double       r_tau;
     public:
         Region( const std::shared_ptr<Material>& m, const double dz,
-                const double Q ): M(m), r_dz(dz), r_Q(Q) {};
+                const double Q ): M(m), r_dz(dz), r_Q(Q) 
+        { 
+            r_tau = r_dz*M->SigmaT();
+        }
         ~Region() {};
 
         double SigmaT() { return M->SigmaT(); }
         double SigmaS() { return M->SigmaS(); }
         double dz() { return r_dz; }
+        double tau() { return r_tau; }
         double Q() { return r_Q; }
         std::shared_ptr<Material> material() { return M; }
+
+        std::vector<double> alpha;
 };
 
 
@@ -108,4 +114,4 @@ class BCMonoDirectional : public BC
         void set_boundary( std::vector<double>& psi );
 };
 
-#endif // OBJECTS_H
+#endif // _OBJECTS_H
