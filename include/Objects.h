@@ -54,8 +54,6 @@ class Region
         double tau() { return r_tau; }
         double Q() { return r_Q; }
         std::shared_ptr<Material> material() { return M; }
-
-        std::vector<double> alpha;
 };
 
 

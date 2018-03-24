@@ -126,33 +126,8 @@ int main( int argc, char* argv[] )
     
     // Calling the GLR algorithm
     legendre_compute_glr( N, &mu[0], &w[0]);
+   
 
-
-    //==========================================================================
-    // Alpha of regions
-    //==========================================================================
-
-    // Set size (default: DD)
-    for( int i = 0; i < N_region; i++ ){
-        region[i]->alpha.resize(N, 0.0);
-        
-        if( method == "step" ){
-            for( int n = 0; n < N; n++ ){
-                if( mu[n] > 0 ){ region[i]->alpha[n] = 1.0; }
-                else           { region[i]->alpha[n] = -1.0; }
-            }
-        }
-        else if( method == "SC" ){
-            for( int n = 0; n < N; n++ ){
-                const double tau = region[i]->tau();
-                const double mu2 = 2.0 * mu[n];
-                region[i]->alpha[n] = 1.0 / std::tanh( tau / mu2  ) 
-                                      - ( mu2 / tau );
-            }
-        }
-    }
-
-    
     //==========================================================================
     // Boundary conditions
     //==========================================================================
