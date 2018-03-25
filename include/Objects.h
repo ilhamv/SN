@@ -17,15 +17,17 @@ class Material
         const std::string m_name;
         const double      m_SigmaS;
         const double      m_SigmaT;
+        const double      m_SigmaA;
     public:
         Material( const int i, const std::string n, const double t, 
                   const double s ): 
-            m_id(i), m_name(n), m_SigmaS(s), m_SigmaT(t) {};
+            m_id(i), m_name(n), m_SigmaS(s), m_SigmaT(t), m_SigmaA(t-s) {};
         ~Material() {};
         int id() { return m_id; }
         std::string name() { return m_name; }
         double SigmaT() { return m_SigmaT; }
         double SigmaS() { return m_SigmaS; }
+        double SigmaA() { return m_SigmaA; }
 };
 
 
@@ -50,6 +52,7 @@ class Region
 
         double SigmaT() { return M->SigmaT(); }
         double SigmaS() { return M->SigmaS(); }
+        double SigmaA() { return M->SigmaA(); }
         double dz() { return r_dz; }
         double tau() { return r_tau; }
         double Q() { return r_Q; }

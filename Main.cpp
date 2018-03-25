@@ -10,6 +10,7 @@
 
 #include "Objects.h"
 #include "Algorithm.h"
+#include "Accelerator.h"
 
 
 int main( int argc, char* argv[] )
@@ -165,9 +166,16 @@ int main( int argc, char* argv[] )
         if( bc_side == "right" ) { BC_right = BC_set; }
     }
 
+    
+    //==========================================================================
+    // Set up DSA
+    //==========================================================================
+
+    AcceleratorDSA DSA( mesh, BC_left, BC_right );
+
 
     //==========================================================================
-    // The Source Iteration
+    // Source Iteration
     //==========================================================================
 
     std::vector<double> psi( N/2 );    // In/out angular flux
@@ -232,6 +240,8 @@ int main( int argc, char* argv[] )
             }
             phi[j] *= 0.5;
         }
+
+       DSA.accelerate( mesh, phi_old, phi );
         
         //======================================================================
         // Relative error and spectral radius estimate
