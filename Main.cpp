@@ -241,7 +241,8 @@ int main( int argc, char* argv[] )
             phi[j] *= 0.5;
         }
 
-       DSA.accelerate( mesh, phi_old, phi );
+        // DSA
+        DSA.accelerate( mesh, phi_old, phi );
         
         //======================================================================
         // Relative error and spectral radius estimate
