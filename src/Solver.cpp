@@ -16,7 +16,7 @@ void source_iteration( const double epsilon,
                        const std::vector<double>& w,
                        const std::shared_ptr<BC>& BC_left,
                        const std::shared_ptr<BC>& BC_right,
-                       AcceleratorDSA& DSA,
+                       const std::shared_ptr<AcceleratorDSA>& DSA,
                        std::vector<double>& phi,
                        std::vector<double>& rho )
 {
@@ -85,7 +85,7 @@ void source_iteration( const double epsilon,
         }
         
         // DSA
-        DSA.accelerate( mesh, phi_old, phi );
+        DSA->accelerate( mesh, phi_old, phi );
         
         //======================================================================
         // Maximum relative error and spectral radius estimate
@@ -118,7 +118,7 @@ void source_iteration_TD( const double epsilon,
                           const std::vector<double>& w,
                           const std::shared_ptr<BC>& BC_left,
                           const std::shared_ptr<BC>& BC_right,
-                          AcceleratorDSA& DSA, 
+                          const std::shared_ptr<AcceleratorDSA>& DSA,
                           const double speed, const double dt, const int K,
                           const std::vector<std::vector<double>>& psi_initial,
                           std::vector<std::vector<double>>& phi )
@@ -228,7 +228,7 @@ void source_iteration_TD( const double epsilon,
             }
 
             // DSA
-            //DSA.accelerate( mesh, phi_old, phi[k] );
+            DSA->accelerate( mesh, phi_old, phi[k] );
             
             //==================================================================
             // Maximum relative error and spectral radius estimate

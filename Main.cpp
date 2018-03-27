@@ -171,7 +171,7 @@ int main( int argc, char* argv[] )
     // Set up DSA
     //==========================================================================
 
-    AcceleratorDSA DSA( mesh, BC_left, BC_right );
+    std::shared_ptr<AcceleratorDSA> DSA;
 
 
     //==========================================================================
@@ -218,6 +218,9 @@ int main( int argc, char* argv[] )
     int N_iter;
 
     if( !TD ){
+        // Set Accelerator
+        DSA = std::make_shared<AcceleratorDSA>( mesh, BC_left, BC_right );
+
         // Initialize phi
         phi.resize( J, 0.0 );
 
@@ -248,6 +251,9 @@ int main( int argc, char* argv[] )
         for( int i = 0; i < N_region; i++ ){
             region[i]->time_augment( aug );
         }
+
+        // Set Accelerator
+        DSA = std::make_shared<AcceleratorDSA>( mesh, BC_left, BC_right );
 
         // Initialize cell-average scalar flux at each time k
         phi_t.resize( K+1, std::vector<double>(J,0.0) );
