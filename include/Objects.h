@@ -16,8 +16,8 @@ class Material
         const int         m_id;
         const std::string m_name;
         const double      m_SigmaS;
-        const double      m_SigmaT;
-        const double      m_SigmaA;
+        double            m_SigmaT;
+        double            m_SigmaA;
     public:
         Material( const int i, const std::string n, const double t, 
                   const double s ): 
@@ -28,6 +28,8 @@ class Material
         double SigmaT() { return m_SigmaT; }
         double SigmaS() { return m_SigmaS; }
         double SigmaA() { return m_SigmaA; }
+        void time_augment( const double aug );
+        void revert_augment( const double aug );
 };
 
 
@@ -46,7 +48,7 @@ class Region
         Region( const std::shared_ptr<Material>& m, const double dz,
                 const double Q ): M(m), r_dz(dz), r_Q(Q) 
         { 
-            r_tau = r_dz*M->SigmaT();
+            r_tau = r_dz * M->SigmaT();
         }
         ~Region() {};
 
@@ -57,6 +59,8 @@ class Region
         double tau() { return r_tau; }
         double Q() { return r_Q; }
         std::shared_ptr<Material> material() { return M; }
+        void time_augment( const double aug );
+        void revert_augment( const double aug );
 };
 
 

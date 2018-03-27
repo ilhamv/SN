@@ -1,7 +1,6 @@
 #include <iostream>
 #include <cstring> 
 #include <vector>
-#include <cmath>
 #include <limits> 
 #include <memory>
 
@@ -11,6 +10,7 @@
 #include "Objects.h"
 #include "Algorithm.h"
 #include "Accelerator.h"
+#include "Solver.h"
 
 
 int main( int argc, char* argv[] )
@@ -175,105 +175,98 @@ int main( int argc, char* argv[] )
 
 
     //==========================================================================
-    // Source Iteration
+    // Time dependent input
     //==========================================================================
 
-    std::vector<double> psi( N/2 );    // In/out angular flux
-    double psi_avg;                    // Average angular flux
-    std::vector<double> phi( J, 0.0 ); // Scalar flux, zero first guess
-    std::vector<double> phi_old(J);
-    std::vector<double> S(J);          // RHS source
-    double error;                      // Maximum relative error
-    std::vector<double> rho;           // Spectral radius
-    double rho_num, rho_denom = 1.0;
+    bool TD = false;
+    std::vector<std::vector<double>> psi_initial; // Initial cell-edge angular 
+                                                  //   flux [J][N]
+    std::vector<double> time = {0.0};
+    double dt;
+    double speed;
+    int K;
 
-    // Start iteration
-    do{
+    if( input_file.child("TD") ){
+        TD = true;
+        pugi::xml_node input_TD = input_file.child("TD");
 
-        // RHS source (note: isotropic)
-        for( int j = 0; j < J; j++ ){
-            S[j] = 0.5 * ( mesh[j]->SigmaS() * phi[j] + mesh[j]->Q() );
-        }
-
-        // Old phi
-        phi_old = phi; 
-        // Reset phi
-        std::fill(phi.begin(), phi.end(), 0.0);
-
-        //======================================================================
-        // Forward sweep
-        //======================================================================
-
-        // Set BC
-        BC_left->set_boundary( psi );
-        
-        // Sweep
-        for( int j = 0; j < J; j++ ){
-            idx = 0; // Index for psi, as its size is N/2
-            for( int n = 0.5*N; n < N; n++ ){
-                psi_avg = psi[idx];
-                psi[idx] = ( (mu[n] - 0.5 * mesh[j]->tau() ) 
-                             * psi[idx] + S[j] * mesh[j]->dz() )
-                           / ( mu[n] + 0.5 * mesh[j]->tau() );
-                psi_avg = (psi_avg + psi[idx]) * w[n];
-                phi[j] += psi_avg;
-                idx++;
-            }
+        // Initial condition
+        std::string ic_type = input_TD.child("IC").attribute("type").value();
+        if( ic_type == "zero" ){
+            psi_initial.resize(J+1, std::vector<double>(N,0.0));
         }
         
-        //======================================================================
-        // Backward sweep
-        //======================================================================
-
-        // Set BC
-        BC_right->set_boundary( psi );
-
-        // Sweep
-        for( int j = J-1; j >= 0; j-- ){
-            for( int n = 0; n < 0.5*N; n++ ){
-                psi_avg = psi[n];
-                psi[n] = ( ( -mu[n] - 0.5 * mesh[j]->tau() ) 
-                           * psi[n] + S[j] * mesh[j]->dz() )
-                         / ( -mu[n] + 0.5 * mesh[j]->tau() );
-                psi_avg = (psi_avg + psi[n]) * w[n];
-                phi[j] += psi_avg;
-            }
-            phi[j] *= 0.5;
+        // Time step
+        pugi::xml_node input_time = input_file.child("TD").child("time");
+        K = input_time.attribute("step").as_int();
+        dt = input_time.attribute("final").as_double() / K;
+        for( int k = 0; k < K; k++ ){
+            time.push_back(time.back() + dt);
         }
 
-        // DSA
-        DSA.accelerate( mesh, phi_old, phi );
+        // Speed
+        speed = std::stod( input_TD.child_value("speed") );
+    }
+
+
+    //==========================================================================
+    // Steady State Solver
+    //==========================================================================
+
+    std::vector<double> phi; // Cell-average scalar flux, with zero first guess
+    std::vector<double> rho; // Spectral radius
+    int N_iter;
+
+    if( !TD ){
+        // Initialize phi
+        phi.resize( J, 0.0 );
+
+        // Solve!
+        source_iteration( epsilon, mesh, mu, w, BC_left, BC_right, DSA, 
+                          phi, rho );
+
+        // Some outputs
+        N_iter = rho.size();
+        std::cout<< "Done!\n";
+        std::cout<< "Number of iterations: " << N_iter << "\n";
+        std::cout<< "Iteration matrix spectral radius: " << rho.back() << "\n";
+    }
+    
+
+    //==========================================================================
+    // Time Dependent Solver
+    //==========================================================================
+
+    std::vector<std::vector<double>> phi_t; // Cell-average scalar flux,
+                                            //   at each time step
+
+    if( TD ){
+        // Time augment
+        const double aug = 1.0 / speed / dt;
+
+        // Time augment absorption and total cross sections
+        for( int i = 0; i < N_region; i++ ){
+            region[i]->time_augment( aug );
+        }
+
+        // Initialize cell-average scalar flux at each time k
+        phi_t.resize( K+1, std::vector<double>(J,0.0) );
+
+        // Solve!
+        source_iteration_TD( epsilon, mesh, mu, w, BC_left, BC_right, DSA, 
+                             speed, dt, K, psi_initial, phi_t );
         
-        //======================================================================
-        // Relative error and spectral radius estimate
-        //======================================================================
-       
-        error = 0.0;
-        for( int j = 0; j < phi.size(); j++ ){
-            // Now phi_old holds the absolute difference between iterates
-            phi_old[j] = std::abs( phi[j] - phi_old[j] );
-            double val = phi_old[j] / 
-                  ( std::abs(phi[j]) + std::numeric_limits<double>::epsilon() );
-            if( val > error ){ error = val; }
+        // Revert time augment
+        for( int i = 0; i < N_region; i++ ){
+            region[i]->revert_augment( aug );
         }
-
-        rho_num = norm_2(phi_old);
-        rho.push_back( rho_num/rho_denom );
-        rho_denom = rho_num;
-
-    } while ( error > ( 1.0 - rho.back() ) * epsilon );
-
-    // Some outputs
-    const int N_iter = rho.size();
-    std::cout<< "Done!\n";
-    std::cout<< "Number of iterations: " << N_iter << "\n";
-    std::cout<< "Iteration matrix spectral radius: " << rho.back() << "\n";
+    }
     
 
     //==========================================================================
     // HDF5 output
     //==========================================================================
-    
+   
     H5std_string FILE_NAME(io_dir + "output.h5");
     H5::H5File output(FILE_NAME, H5F_ACC_TRUNC);
     H5::DataSet dataset;
@@ -290,8 +283,10 @@ int main( int argc, char* argv[] )
     dataset.write(&N, type_int);
     dataset = output.createDataSet( "epsilon", type_double, space_scalar );
     dataset.write(&epsilon, type_double);
-    dataset = output.createDataSet( "N_iter", type_double, space_scalar );
-    dataset.write(&N_iter, type_double);
+    if(TD){
+        dataset = output.createDataSet( "N_iter", type_double, space_scalar );
+        dataset.write(&N_iter, type_double);
+    }
     // Material, Region, Mesh
     dataset = output.createDataSet( "bc_left", type_string, space_scalar);
     dataset.write(BC_left->type(), type_string);
@@ -306,20 +301,57 @@ int main( int argc, char* argv[] )
     dataset = output.createDataSet( "w_n", type_double, space_vector);
     dataset.write(w.data(), type_double);
     
-    // Spectral radius estimates
-    rho.erase(rho.begin());
-    dims[0] = rho.size();
-    space_vector = H5::DataSpace(1,dims);
-    dataset = output.createDataSet( "spectral_radius",type_double,space_vector);
-    dataset.write(rho.data(), type_double);
+    //==========================================================================
+    // Steady state outputs
+    //==========================================================================
 
-    // Scalar flux solution
-    dims[0] = J;
-    space_vector = H5::DataSpace(1,dims);
-    dataset = output.createDataSet( "scalar_flux", type_double, space_vector);
-    dataset.write(phi.data(), type_double);
-    dataset = output.createDataSet( "z", type_double, space_vector);
-    dataset.write(z.data(), type_double);
+    if( !TD ){
+        // Spectral radius estimates
+        rho.erase(rho.begin());
+        dims[0] = rho.size();
+        space_vector = H5::DataSpace(1,dims);
+        dataset = output.createDataSet( "spectral_radius",type_double,
+                                        space_vector);
+        dataset.write(rho.data(), type_double);
 
+        // Scalar flux solution
+        dims[0] = J;
+        space_vector = H5::DataSpace(1,dims);
+        dataset = output.createDataSet( "scalar_flux", type_double, 
+                                        space_vector);
+        dataset.write(phi.data(), type_double);
+        dataset = output.createDataSet( "z", type_double, space_vector);
+        dataset.write(z.data(), type_double);
+    }
+    
+    //==========================================================================
+    // Time dependent outputs
+    //==========================================================================
+
+    if( TD ){
+        phi.resize((K+1)*J);
+        idx = 0;
+        for( int k = 0; k < K+1; k++ ){
+            for( int j = 0; j < J; j++ ){
+                phi[J*k+j] = phi_t[k][j];
+            }
+        }
+        // Scalar flux
+        hsize_t dimsM[2]; dimsM[0] = K+1; dimsM[1] = J;
+        H5::DataSpace data_spaceM(2,dimsM);
+        dataset = output.createDataSet( "scalar_flux_time", type_double, 
+                                        data_spaceM);
+        dataset.write(phi.data(), type_double);
+        
+        // z
+        dims[0] = J;
+        space_vector = H5::DataSpace(1,dims);
+        dataset = output.createDataSet( "scalar_flux", type_double, 
+                                        space_vector);
+        dataset.write(phi.data(), type_double);
+        dataset = output.createDataSet( "z", type_double, space_vector);
+        dataset.write(z.data(), type_double);
+    }
+    
     return 0;
 }
