@@ -23,14 +23,8 @@ void Material::revert_augment( const double aug )
 // Region
 //==============================================================================
 
-void Region::time_augment( const double aug )
+void Region::reset_tau()
 {
-    M->time_augment(aug);
-    r_tau = r_dz * M->SigmaT();
-}
-void Region::revert_augment( const double aug )
-{
-    M->revert_augment(aug);
     r_tau = r_dz * M->SigmaT();
 }
 

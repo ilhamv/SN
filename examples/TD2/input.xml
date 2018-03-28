@@ -1,12 +1,12 @@
 <?xml version = '1.0' encoding = 'UTF-8'?>
 
 
-<N> 32 </N>
+<N> 8 </N>
 <epsilon> 1E-6 </epsilon>
 
 
 <TD>
-    <time final="0.5" step="500"/>
+    <time final="0.01" step="25"/>
     <IC type="zero"/>
     <speed> 2200.0 </speed>
 </TD>
@@ -26,8 +26,8 @@
 
 
 <region>
-    <space> 5.0 15.0 10.0 </space>
-    <mesh> 25 75 50 </mesh>
+    <space> 10.0 15.0 5.0 </space>
+    <mesh> 50 75 25 </mesh>
     <material> 2 1 2 </material>
     <source> 0.0 0.1 0.0 </source>
 </region>

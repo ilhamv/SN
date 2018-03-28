@@ -188,7 +188,7 @@ int main( int argc, char* argv[] )
             psi_initial.resize(J+1, std::vector<double>(N,0.0));
         }
         
-        // Time step
+        // Time step and time
         pugi::xml_node input_time = input_file.child("TD").child("time");
         K = input_time.attribute("step").as_int();
         dt = input_time.attribute("final").as_double() / K;
@@ -239,8 +239,8 @@ int main( int argc, char* argv[] )
         phi_t.resize( K+1, std::vector<double>(J,0.0) );
 
         // Solve!
-        source_iteration_TD( epsilon, mesh, region, mu, w, BC_left, BC_right,
-                             speed, dt, K, psi_initial, phi_t );    
+        source_iteration_TD( epsilon, mesh, material, region, mu, w, BC_left, 
+                             BC_right, speed, dt, K, psi_initial, phi_t );    
     }
     
 
@@ -327,11 +327,15 @@ int main( int argc, char* argv[] )
         // z
         dims[0] = J;
         space_vector = H5::DataSpace(1,dims);
-        dataset = output.createDataSet( "scalar_flux", type_double, 
-                                        space_vector);
-        dataset.write(phi.data(), type_double);
         dataset = output.createDataSet( "z", type_double, space_vector);
         dataset.write(z.data(), type_double);
+        
+        // time
+        dims[0] = K+1;
+        space_vector = H5::DataSpace(1,dims);
+        dataset = output.createDataSet( "time", type_double, 
+                                        space_vector);
+        dataset.write(time.data(), type_double);
     }
     
     return 0;

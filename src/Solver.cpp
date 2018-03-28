@@ -117,6 +117,7 @@ void source_iteration( const double epsilon,
 
 void source_iteration_TD( const double epsilon,
                           const std::vector<std::shared_ptr<Region>>& mesh,
+                        const std::vector<std::shared_ptr<Material>>& material,
                           const std::vector<std::shared_ptr<Region>>& region,
                           const std::vector<double>& mu, 
                           const std::vector<double>& w,
@@ -139,8 +140,11 @@ void source_iteration_TD( const double epsilon,
     const double aug = 1.0 / speed / dt;      // Factor in previous time source
     
     // Time augment absorption and total cross sections
+    for( int i = 0; i < material.size(); i++ ){
+        material[i]->time_augment( aug );
+    }
     for( int i = 0; i < region.size(); i++ ){
-        region[i]->time_augment( aug );
+        region[i]->reset_tau();
     }
 
     // Set Accelerator
@@ -193,8 +197,11 @@ void source_iteration_TD( const double epsilon,
     }
 
     // Revert time augment
+    for( int i = 0; i < material.size(); i++ ){
+        material[i]->revert_augment( aug );
+    }
     for( int i = 0; i < region.size(); i++ ){
-        region[i]->revert_augment( aug );
+        region[i]->reset_tau();
     }
 }
 
@@ -205,6 +212,7 @@ void source_iteration_TD( const double epsilon,
 
 void source_iteration_MB( const double epsilon,
                           const std::vector<std::shared_ptr<Region>>& mesh,
+                        const std::vector<std::shared_ptr<Material>>& material,
                           const std::vector<std::shared_ptr<Region>>& region,
                           const std::vector<double>& mu, 
                           const std::vector<double>& w,
@@ -238,15 +246,21 @@ void source_iteration_MB( const double epsilon,
     AcceleratorDSA DSA( mesh, BC_left, BC_right );
 
     // Time augment absorption and total cross sections
+    for( int i = 0; i < material.size(); i++ ){
+        material[i]->time_augment( aug );
+    }
     for( int i = 0; i < region.size(); i++ ){
-        region[i]->time_augment( aug );
+        region[i]->reset_tau();
     }
     
     AcceleratorDSA DSA_aug( mesh, BC_left, BC_right );
     
     // Revert time augment
+    for( int i = 0; i < material.size(); i++ ){
+        material[i]->revert_augment( aug );
+    }
     for( int i = 0; i < region.size(); i++ ){
-        region[i]->revert_augment( aug );
+        region[i]->reset_tau();
     }
     
     //=========================================================================
@@ -292,7 +306,7 @@ void source_iteration_MB( const double epsilon,
             //==================================================================
 
             // Time statuses:
-            //   psi_avg: --> time-average (for next sweep)
+            //   psi_avg: --> time-average (for additional transport)
             //   psi_prv: previous (remain unchanged)
             //   psi_nxt: next (previous estimate)
             //   phi[k]:  --> time-average (not used)
@@ -316,7 +330,7 @@ void source_iteration_MB( const double epsilon,
             // Time statuses:
             //   psi_avg: time-average (RHS source) --> next (new estimate)
             //   psi_nxt: next (previous estimate)
-            //   phi[k]:  --> next (result we need)
+            //   phi[k]:  --> next (result we want)
 
             // Set up anisotropic source
             for( int j = 0; j < J; j++ ){
@@ -326,8 +340,11 @@ void source_iteration_MB( const double epsilon,
             }
 
             // Time augment absorption and total cross sections
+            for( int i = 0; i < material.size(); i++ ){
+                material[i]->time_augment( aug );
+            }
             for( int i = 0; i < region.size(); i++ ){
-                region[i]->time_augment( aug );
+                region[i]->reset_tau();
             }
             
             // Source iteration
@@ -335,8 +352,11 @@ void source_iteration_MB( const double epsilon,
                              speed, dt, phi[k], rho_add, S_anis,psi_avg,N_iter);
             
             // Revert time augment
+            for( int i = 0; i < material.size(); i++ ){
+                material[i]->revert_augment( aug );
+            }
             for( int i = 0; i < region.size(); i++ ){
-                region[i]->revert_augment( aug );
+                region[i]->reset_tau();
             }
             
             

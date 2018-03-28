@@ -19,8 +19,8 @@
 
 
 <region>
-    <space> 5.0 15.0 10.0 </space>
-    <mesh> 25 75 50 </mesh>
+    <space> 10.0 15.0 5.0 </space>
+    <mesh> 50 75 25 </mesh>
     <material> 2 1 2 </material>
     <source> 0.0 0.1 0.0 </source>
 </region>

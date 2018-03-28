@@ -59,8 +59,7 @@ class Region
         double tau() { return r_tau; }
         double Q() { return r_Q; }
         std::shared_ptr<Material> material() { return M; }
-        void time_augment( const double aug );
-        void revert_augment( const double aug );
+        void reset_tau();
 };
 
 
