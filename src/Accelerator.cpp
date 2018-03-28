@@ -4,9 +4,20 @@
 
 AcceleratorDSA::AcceleratorDSA
         ( const std::vector<std::shared_ptr<Region>>& mesh,
-          const std::shared_ptr<BC>& BC_left,
-          const std::shared_ptr<BC>& BC_right )
+          std::shared_ptr<BC> BC_left,
+          std::shared_ptr<BC> BC_right )
 {
+    //==========================================================================
+    // Vacuum or reflective BC only
+    //==========================================================================
+    
+    if( BC_left->type() != "Vacuum" && BC_left->type() != "Reflective"  ){
+        BC_left = std::make_shared<BCVacuum>();
+    }
+    if( BC_right->type() != "Vacuum" && BC_right->type() != "Reflective"  ){
+        BC_right = std::make_shared<BCVacuum>();
+    }
+
     //==========================================================================
     // Set the original tridiagonal matrix
     //==========================================================================

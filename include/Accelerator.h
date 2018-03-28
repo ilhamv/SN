@@ -17,8 +17,8 @@ class AcceleratorDSA
         std::vector<double> f;
     public:
         AcceleratorDSA( const std::vector<std::shared_ptr<Region>>& mesh, 
-                        const std::shared_ptr<BC>& BC_left,
-                        const std::shared_ptr<BC>& BC_right );
+                        std::shared_ptr<BC> BC_left,
+                        std::shared_ptr<BC> BC_right );
         ~AcceleratorDSA() {};
 
         void accelerate( const std::vector<std::shared_ptr<Region>>& mesh,
