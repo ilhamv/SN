@@ -9,7 +9,6 @@
 
 #include "Objects.h"
 #include "Algorithm.h"
-#include "Accelerator.h"
 #include "Solver.h"
 
 
@@ -166,13 +165,6 @@ int main( int argc, char* argv[] )
         if( bc_side == "right" ) { BC_right = BC_set; }
     }
 
-    
-    //==========================================================================
-    // Set up DSA
-    //==========================================================================
-
-    std::shared_ptr<AcceleratorDSA> DSA;
-
 
     //==========================================================================
     // Time dependent input
@@ -218,15 +210,11 @@ int main( int argc, char* argv[] )
     int N_iter;
 
     if( !TD ){
-        // Set Accelerator
-        DSA = std::make_shared<AcceleratorDSA>( mesh, BC_left, BC_right );
-
         // Initialize phi
         phi.resize( J, 0.0 );
 
         // Solve!
-        source_iteration( epsilon, mesh, mu, w, BC_left, BC_right, DSA, 
-                          phi, rho );
+        source_iteration( epsilon, mesh, mu, w, BC_left, BC_right, phi, rho );
 
         // Some outputs
         N_iter = rho.size();
@@ -247,25 +235,12 @@ int main( int argc, char* argv[] )
         // Time augment
         const double aug = 1.0 / speed / dt;
 
-        // Time augment absorption and total cross sections
-        for( int i = 0; i < N_region; i++ ){
-            region[i]->time_augment( aug );
-        }
-
-        // Set Accelerator
-        DSA = std::make_shared<AcceleratorDSA>( mesh, BC_left, BC_right );
-
         // Initialize cell-average scalar flux at each time k
         phi_t.resize( K+1, std::vector<double>(J,0.0) );
 
         // Solve!
-        source_iteration_TD( epsilon, mesh, mu, w, BC_left, BC_right, DSA, 
-                             speed, dt, K, psi_initial, phi_t );
-        
-        // Revert time augment
-        for( int i = 0; i < N_region; i++ ){
-            region[i]->revert_augment( aug );
-        }
+        source_iteration_TD( epsilon, mesh, region, mu, w, BC_left, BC_right,
+                             speed, dt, K, psi_initial, phi_t );    
     }
     
 

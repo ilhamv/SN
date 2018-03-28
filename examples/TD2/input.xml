@@ -1,8 +1,15 @@
 <?xml version = '1.0' encoding = 'UTF-8'?>
 
 
-<N> 8 </N>
+<N> 32 </N>
 <epsilon> 1E-6 </epsilon>
+
+
+<TD>
+    <time final="0.5" step="500"/>
+    <IC type="zero"/>
+    <speed> 2200.0 </speed>
+</TD>
 
 
 <materials>
