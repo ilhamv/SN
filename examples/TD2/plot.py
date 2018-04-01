@@ -1,20 +1,40 @@
 import h5py
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib import animation
 
 f = h5py.File('output.h5', 'r');
 
-phi = f['scalar_flux_time'];
-t = f['time'];
-z = f['z'];
+phi = np.array(f['scalar_flux_time']);
+t = np.array(f['time']);
+z = np.array(f['z']);
 
 f = h5py.File('steady.h5', 'r');
-phi0 = f['scalar_flux']
+phi0 = np.array(f['scalar_flux'])
+z_s = np.array(f['z'])
 
-for k in [0,1,2,3,4,5,6,8,10,12,15,20,25]:
-    plt.plot(z,phi[k], 'o')
-    plt.plot(z,phi0)
-    plt.title("t = %s s"%(t[k]));
-    plt.xlabel("z, cm");
-    plt.ylabel("Scalar flux, /cm^2.s");
-    plt.show();
+fig = plt.figure()
+ax = plt.axes(xlim=(-0.5, 32), ylim=(0.0, 0.3))
+line, = ax.plot([], [], 'o', lw=2)
+line2, = ax.plot([], [], lw=2)
+time_text = ax.text(0.02, 0.95, '', transform=ax.transAxes)
+plt.xlabel("z, cm");
+plt.ylabel("Scalar flux, /cm^2.s");
+
+def init():
+    line.set_data([], [])
+    line2.set_data([], [])
+    time_text.set_text('')
+    return time_text, line, line2
+
+def animate(i):
+    line.set_data(z, phi[i])
+    line2.set_data(z_s, phi0)
+    time_text.set_text('time = %.4f s' %t[i])
+    return time_text, line, line2
+
+inter = 5000 / len(phi)
+anim = animation.FuncAnimation(fig, animate, init_func=init,
+                               frames=len(phi), interval=inter, blit=True)
+
+plt.show()

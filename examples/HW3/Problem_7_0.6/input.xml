@@ -3,12 +3,13 @@
 
 <N> 8 </N>
 <epsilon> 1E-6 </epsilon>
+<Accelerator type="DSA" />
 
 
 <materials>
     <material id="1" name="fuel">
         <total   xs="1.0"/>
-        <scatter xs="0.95"/>
+        <scatter xs="0.6"/>
     </material>
 </materials>
 
@@ -25,3 +26,4 @@
     <left  type="vacuum"/>
     <right type="reflective"/>
 </bc>
+

@@ -3,6 +3,7 @@
 
 <N> 8 </N>
 <epsilon> 1E-6 </epsilon>
+<Accelerator type="DSA" />
 
 
 <materials>

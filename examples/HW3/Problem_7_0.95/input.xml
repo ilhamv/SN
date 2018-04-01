@@ -6,17 +6,10 @@
 <Accelerator type="DSA" />
 
 
-<TD method="implicit">
-    <time final="0.01" step="50"/>
-    <IC type="zero"/>
-    <speed> 2200.0 </speed>
-</TD>
-
-
 <materials>
     <material id="1" name="fuel">
         <total   xs="1.0"/>
-        <scatter xs="0.6"/>
+        <scatter xs="0.95"/>
     </material>
 </materials>
 
@@ -33,4 +26,3 @@
     <left  type="vacuum"/>
     <right type="reflective"/>
 </bc>
-

@@ -23,7 +23,7 @@ void Material::revert_augment( const double aug )
 // Region
 //==============================================================================
 
-void Region::reset_tau()
+void Region::reset()
 {
     r_tau = r_dz * M->SigmaT();
 }

@@ -7,7 +7,47 @@
 #include "Objects.h"
 
 
-class AcceleratorDSA
+class Accelerator
+{
+    private:
+        const std::string a_type;
+    public:
+        Accelerator( const std::string t ): a_type(t) {};
+        ~Accelerator() {};
+
+
+        virtual std::string type() { return a_type; }
+        virtual void accelerate( const std::vector<std::shared_ptr<Region>>& mesh,
+                                 const std::vector<double>& phi_old, 
+                                 std::vector<double>& phi ) = 0;
+};
+
+
+//=============================================================================
+// NONE
+//=============================================================================
+
+class AcceleratorNONE : public Accelerator
+{
+    private:
+        int J;
+        std::vector<double> A;
+        std::vector<double> B;
+        std::vector<double> C;
+        std::vector<double> f;
+    public:
+        AcceleratorNONE(): Accelerator("NONE") {};
+        ~AcceleratorNONE() {};
+
+        void accelerate( const std::vector<std::shared_ptr<Region>>& mesh,
+                         const std::vector<double>& phi_old, 
+                               std::vector<double>& phi );
+};
+//=============================================================================
+// DSA
+//=============================================================================
+
+class AcceleratorDSA : public Accelerator
 {
     private:
         int J;

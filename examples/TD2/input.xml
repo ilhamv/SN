@@ -3,10 +3,11 @@
 
 <N> 8 </N>
 <epsilon> 1E-6 </epsilon>
+<Accelerator type="DSA" />
 
 
-<TD>
-    <time final="0.01" step="25"/>
+<TD method="implicit">
+    <time final="0.01" step="50"/>
     <IC type="zero"/>
     <speed> 2200.0 </speed>
 </TD>

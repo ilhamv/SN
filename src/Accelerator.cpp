@@ -5,7 +5,7 @@
 AcceleratorDSA::AcceleratorDSA
         ( const std::vector<std::shared_ptr<Region>>& mesh,
           std::shared_ptr<BC> BC_left,
-          std::shared_ptr<BC> BC_right )
+          std::shared_ptr<BC> BC_right ): Accelerator("DSA")
 {
     //==========================================================================
     // Set the original tridiagonal matrix
@@ -51,6 +51,10 @@ AcceleratorDSA::AcceleratorDSA
 //==============================================================================
 // Accelerate
 //==============================================================================
+
+void AcceleratorNONE::accelerate(const std::vector<std::shared_ptr<Region>>& mesh,
+                                 const std::vector<double>& phi_old, 
+                                       std::vector<double>& phi ) { return; }
 
 void AcceleratorDSA::accelerate(const std::vector<std::shared_ptr<Region>>& mesh,
                                 const std::vector<double>& phi_old, 

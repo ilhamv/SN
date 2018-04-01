@@ -10,6 +10,7 @@
 #include "Objects.h"
 #include "Algorithm.h"
 #include "Solver.h"
+#include "Accelerator.h"
 
 
 int main( int argc, char* argv[] )
@@ -28,7 +29,7 @@ int main( int argc, char* argv[] )
 
 
     //==========================================================================
-    // Method descriptions
+    // Method parameters
     //==========================================================================
 
     // Quadrature
@@ -36,9 +37,11 @@ int main( int argc, char* argv[] )
     
     // Convergence criterion
     const double epsilon = std::stod( input_file.child_value("epsilon") );
+    
+    // Accelerator
+    const std::string accelerator_type = input_file.child("Accelerator").
+                                                    attribute("type").value();
 
-    // Spatial discretization method
-    const std::string method = input_file.child_value("method");
 
 
     //==========================================================================
@@ -173,6 +176,8 @@ int main( int argc, char* argv[] )
     bool TD = false;
     std::vector<std::vector<double>> psi_initial; // Initial cell-edge angular 
                                                   //   flux [J][N]
+    const std::string TD_method = input_file.child("TD").attribute("method")
+                                                        .value();
     std::vector<double> time = {0.0};
     double dt;
     double speed;
@@ -202,45 +207,40 @@ int main( int argc, char* argv[] )
 
 
     //==========================================================================
-    // Steady State Solver
+    // Solve: Steady state
     //==========================================================================
 
-    std::vector<double> phi; // Cell-average scalar flux, with zero first guess
-    std::vector<double> rho; // Spectral radius
-    int N_iter;
+    // Results
+    std::vector<double> phi;    // Cell-average scalar flux
+    std::vector<double> rho;    // Spectral radius
+    int                 N_iter; // # of iterations
 
     if( !TD ){
-        // Initialize phi
-        phi.resize( J, 0.0 );
-
-        // Solve!
-        source_iteration( epsilon, mesh, mu, w, BC_left, BC_right, phi, rho );
-
-        // Some outputs
-        N_iter = rho.size();
-        std::cout<< "Done!\n";
-        std::cout<< "Number of iterations: " << N_iter << "\n";
-        std::cout<< "Iteration matrix spectral radius: " << rho.back() << "\n";
+        source_iteration( N_iter, epsilon, mesh, mu, w, BC_left, BC_right, phi, 
+                          rho, accelerator_type);
     }
     
 
     //==========================================================================
-    // Time Dependent Solver
+    // Solve: Time dependent
     //==========================================================================
 
+    // Results
     std::vector<std::vector<double>> phi_t; // Cell-average scalar flux,
                                             //   at each time step
 
     if( TD ){
-        // Time augment
-        const double aug = 1.0 / speed / dt;
-
-        // Initialize cell-average scalar flux at each time k
-        phi_t.resize( K+1, std::vector<double>(J,0.0) );
-
-        // Solve!
-        source_iteration_TD( epsilon, mesh, material, region, mu, w, BC_left, 
-                             BC_right, speed, dt, K, psi_initial, phi_t );    
+        if( TD_method == "implicit" ){
+            source_iteration_TD_implicit( epsilon, mesh, material, region, mu, 
+                                          w, BC_left, BC_right, speed, dt, 
+                                          psi_initial, phi_t, accelerator_type, 
+                                          time );        
+        }
+        if( TD_method == "MB" ){
+            source_iteration_TD_MB( epsilon, mesh, material, region, mu, w, 
+                                    BC_left, BC_right, speed, dt, psi_initial, 
+                                    phi_t, accelerator_type, time );        
+        }
     }
     
 
