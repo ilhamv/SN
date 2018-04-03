@@ -6,7 +6,7 @@
 <Accelerator type="DSA" />
 
 
-<TD method="MB">
+<TD method="implicit">
     <time final="0.01" step="50"/>
     <IC type="zero"/>
     <speed> 2200.0 </speed>
@@ -31,6 +31,6 @@
 
 <bc> 
     <left  type="vacuum"/>
-    <right type="reflective"/>
+    <right type="vacuum"/>
 </bc>
 

@@ -3,14 +3,7 @@
 
 <N> 8 </N>
 <epsilon> 1E-6 </epsilon>
-<Accelerator type="DSA" />
-
-
-<TD method="MB">
-    <time final="0.01" step="50"/>
-    <IC type="zero"/>
-    <speed> 2200.0 </speed>
-</TD>
+<Accelerator type="OFF"/>
 
 
 <materials>
@@ -31,6 +24,6 @@
 
 <bc> 
     <left  type="vacuum"/>
-    <right type="reflective"/>
+    <right type="vacuum"/>
 </bc>
 

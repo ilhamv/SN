@@ -33,8 +33,7 @@ def animate(i):
     time_text.set_text('time = %.4f s' %t[i])
     return time_text, line, line2
 
-inter = 5000 / len(phi)
 anim = animation.FuncAnimation(fig, animate, init_func=init,
-                               frames=len(phi), interval=inter, blit=True)
+                               frames=len(phi), interval=200, blit=True)
 
 plt.show()

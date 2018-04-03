@@ -6,7 +6,7 @@
 <Accelerator type="DSA" />
 
 
-<TD method="MB">
+<TD method="implicit">
     <time final="0.01" step="50"/>
     <IC type="zero"/>
     <speed> 2200.0 </speed>
@@ -16,7 +16,7 @@
 <materials>
     <material id="1" name="fuel">
         <total   xs="1.0"/>
-        <scatter xs="0.6"/>
+        <scatter xs="0.0"/>
     </material>
 </materials>
 
@@ -25,12 +25,12 @@
     <space> 10.0 </space>
     <mesh> 50 </mesh>
     <material> 1 </material>
-    <source> 0.1 </source>
+    <source> 0.0 </source>
 </region>
 
 
 <bc> 
-    <left  type="vacuum"/>
-    <right type="reflective"/>
+    <left type="mono" magnitude="0.1" mu="1.0"/>
+    <right type="vacuum"/>
 </bc>
 

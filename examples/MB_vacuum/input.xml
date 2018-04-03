@@ -31,6 +31,6 @@
 
 <bc> 
     <left  type="vacuum"/>
-    <right type="reflective"/>
+    <right type="vacuum"/>
 </bc>
 

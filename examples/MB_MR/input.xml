@@ -18,19 +18,24 @@
         <total   xs="1.0"/>
         <scatter xs="0.6"/>
     </material>
+
+    <material id="2" name="reflector">
+        <total   xs="1.0"/>
+        <scatter xs="0.8"/>
+    </material>
 </materials>
 
 
 <region>
-    <space> 10.0 </space>
-    <mesh> 50 </mesh>
-    <material> 1 </material>
-    <source> 0.1 </source>
+    <space> 10.0 15.0 5.0 </space>
+    <mesh> 50 75 25 </mesh>
+    <material> 2 1 2 </material>
+    <source> 0.0 0.1 0.0 </source>
 </region>
 
 
 <bc> 
-    <left  type="vacuum"/>
-    <right type="reflective"/>
+    <left  type="isotropic" magnitude="0.12"/>
+    <right type="mono" magnitude="0.1" mu="-0.8"/>
 </bc>
 
