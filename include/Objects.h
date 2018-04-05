@@ -44,6 +44,7 @@ class Region
         const double r_dz;
         const double r_Q;
         double       r_tau;
+        std::vector<double> r_alpha;
     public:
         Region( const std::shared_ptr<Material>& m, const double dz,
                 const double Q ): M(m), r_dz(dz), r_Q(Q) 
@@ -60,6 +61,8 @@ class Region
         double Q() { return r_Q; }
         std::shared_ptr<Material> material() { return M; }
         void reset();
+        void set_alpha( const std::vector<double>& mu, const std::string type );
+        double alpha( const int n ) { return r_alpha[n]; }
 };
 
 

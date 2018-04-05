@@ -32,7 +32,7 @@ void source_iteration( int& N_iter,
     const int N = mu.size();
     const int J = mesh.size();
     std::vector<double> S(J);        // Isotropic source
-    std::vector<double> psi( N/2 );  // In/out angular flux
+    std::vector<double> psi_io( N/2 );  // In/out angular flux
     std::vector<double> phi_old(J);
     double psi_avg;                  // Average angular flux
     double error;                    // Maximum relative error
@@ -46,6 +46,10 @@ void source_iteration( int& N_iter,
     { 
         std::cout<< "DSA\n";
         accelerator = std::make_shared<AcceleratorDSA>( mesh, BC_left, 
+                                                        BC_right );
+    } else if ( accelerator_type == "IDSA" ){
+        std::cout<< "IDSA\n";
+        accelerator = std::make_shared<AcceleratorIDSA>( mesh, BC_left, 
                                                         BC_right );
     } else{
         std::cout<< "OFF\n";
@@ -74,17 +78,20 @@ void source_iteration( int& N_iter,
         //======================================================================
 
         // Set BC
-        BC_left->set_boundary( psi );
+        BC_left->set_boundary( psi_io );
         
         // Sweep
         for( int j = 0; j < J; j++ ){
-            idx = 0; // Index for psi, as its size is N/2
+            idx = 0; // Index for psi_io, as its size is N/2
             for( int n = 0.5*N; n < N; n++ ){
-                psi_avg = psi[idx];
-                psi[idx] = ( ( mu[n] - 0.5 * mesh[j]->tau() ) * psi[idx] 
+                psi_avg = psi_io[idx];
+                psi_io[idx] = ( ( mu[n] - ( 1.0 - mesh[j]->alpha(n) ) * 0.5 
+                                       * mesh[j]->tau() ) * psi_io[idx] 
                              + S[j] * mesh[j]->dz() )
-                           / ( mu[n] + 0.5 * mesh[j]->tau() );
-                psi_avg = (psi_avg + psi[idx]) * w[n];
+                           / ( mu[n] + ( 1.0 + mesh[j]->alpha(n) ) * 0.5 
+                                     * mesh[j]->tau() );
+                psi_avg = ( ( 1.0 - mesh[j]->alpha(n) ) * psi_avg 
+                            + ( 1.0 + mesh[j]->alpha(n) ) * psi_io[idx] ) * w[n];
                 phi[j] += psi_avg;
                 idx++;
             }
@@ -95,16 +102,19 @@ void source_iteration( int& N_iter,
         //======================================================================
 
         // Set BC
-        BC_right->set_boundary( psi );
+        BC_right->set_boundary( psi_io );
 
         // Sweep
         for( int j = J-1; j >= 0; j-- ){
             for( int n = 0; n < 0.5*N; n++ ){
-                psi_avg = psi[n];
-                psi[n] = ( ( -mu[n] - 0.5 * mesh[j]->tau() ) * psi[n] 
+                psi_avg = psi_io[n];
+                psi_io[n] = ( ( -mu[n] - ( 1.0 + mesh[j]->alpha(n) ) * 0.5 
+                                    * mesh[j]->tau() ) * psi_io[n] 
                            + S[j] * mesh[j]->dz() )
-                         / ( -mu[n] + 0.5 * mesh[j]->tau() );
-                psi_avg = (psi_avg + psi[n]) * w[n];
+                         / ( -mu[n] + ( 1.0 - mesh[j]->alpha(n) ) * 0.5 
+                                      * mesh[j]->tau() );
+                psi_avg = ( ( 1.0 + mesh[j]->alpha(n) ) * psi_avg 
+                            + ( 1.0 - mesh[j]->alpha(n) ) * psi_io[n] ) * w[n];
                 phi[j] += psi_avg;
             }
             phi[j] *= 0.5;
@@ -130,7 +140,7 @@ void source_iteration( int& N_iter,
         rho.push_back( rho_num/rho_denom );
         rho_denom = rho_num;
 
-    } while ( error > ( 1.0 - rho.back() ) * epsilon );
+    } while ( error > epsilon );
         
     // Some outputs
     N_iter = rho.size();
@@ -324,7 +334,7 @@ void source_iteration_TD_implicit(
 
             N_iter++;
 
-        } while ( error > ( 1.0 - rho ) * epsilon );
+        } while ( error > epsilon );
         
         // Some outputs
         std::cout<< "Report for k = " << k << " ("<< time[k] << " s)\n";
@@ -875,7 +885,7 @@ void source_iteration_TD_MB(
 
             N_iter++;
 
-        } while ( error > ( 1.0 - rho ) * epsilon );
+        } while ( error > epsilon );
         
         // Some outputs
         std::cout<< "Report for k = " << k << " ("<< time[k] << " s)\n";

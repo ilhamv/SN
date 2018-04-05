@@ -65,5 +65,27 @@ class AcceleratorDSA : public Accelerator
                          const std::vector<double>& phi_old, 
                                std::vector<double>& phi );
 };
+//=============================================================================
+// IDSA
+//=============================================================================
+
+class AcceleratorIDSA : public Accelerator
+{
+    private:
+        int J;
+        std::vector<double> A;
+        std::vector<double> B;
+        std::vector<double> C;
+        std::vector<double> f;
+    public:
+        AcceleratorIDSA( const std::vector<std::shared_ptr<Region>>& mesh, 
+                         std::shared_ptr<BC> BC_left,
+                         std::shared_ptr<BC> BC_right );
+        ~AcceleratorIDSA() {};
+
+        void accelerate( const std::vector<std::shared_ptr<Region>>& mesh,
+                         const std::vector<double>& phi_old, 
+                               std::vector<double>& phi );
+};
 
 #endif // _ACCELERATOR_H

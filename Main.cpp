@@ -43,6 +43,16 @@ int main( int argc, char* argv[] )
                                                     attribute("type").value();
 
 
+    //==========================================================================
+    // Quadrature sets
+    //==========================================================================
+
+    std::vector<double> mu(N);
+    std::vector<double> w(N);
+    
+    // Calling the GLR algorithm
+    legendre_compute_glr( N, &mu[0], &w[0]);
+   
 
     //==========================================================================
     // Materials
@@ -81,12 +91,23 @@ int main( int argc, char* argv[] )
                                     ( input_region.child_value("source") );
     const int N_region = r_space.size();
 
+    // Space discretization method (Time dependent: DD only)
+    std::string space_method = input_region.attribute("method").value();
+    if( input_file.child("TD") ) { space_method = "DD"; }
+    std::cout<<"Space discretization: "<<space_method<<"\n";
+
     // Set up region properties
     for( int i = 0; i < N_region; i++ ){
+        // Mesh size
         const double r_dz = r_space[i] / r_mesh[i];
+        // Material
         const std::shared_ptr<Material> r_M = 
                                           find_by_id( material, r_material[i] );
+        // Create region
         region.push_back( std::make_shared<Region>( r_M, r_dz, r_Q[i] ));
+
+        // Alpha for space discretization
+        region.back()->set_alpha( mu, space_method );
     }
 
 
@@ -119,17 +140,6 @@ int main( int argc, char* argv[] )
         z[j] = z[j-1] + 0.5 * ( mesh[j-1]->dz() + mesh[j]->dz() );
     }
 
-
-    //==========================================================================
-    // Quadrature sets
-    //==========================================================================
-
-    std::vector<double> mu(N);
-    std::vector<double> w(N);
-    
-    // Calling the GLR algorithm
-    legendre_compute_glr( N, &mu[0], &w[0]);
-   
 
     //==========================================================================
     // Boundary conditions
@@ -211,9 +221,10 @@ int main( int argc, char* argv[] )
     //==========================================================================
 
     // Results
-    std::vector<double> phi;    // Cell-average scalar flux
-    std::vector<double> rho;    // Spectral radius
-    int                 N_iter; // # of iterations
+    std::vector<double> phi;              // Cell-average scalar flux
+    std::vector<std::vector<double>> psi; // Cell-edge angular flux
+    std::vector<double> rho;              // Spectral radius
+    int                 N_iter;           // # of iterations
 
     if( !TD ){
         source_iteration( N_iter, epsilon, mesh, mu, w, BC_left, BC_right, phi, 

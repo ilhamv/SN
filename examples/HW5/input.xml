@@ -1,29 +1,29 @@
 <?xml version = '1.0' encoding = 'UTF-8'?>
 
 
-<N> 8 </N>
-<epsilon> 1E-6 </epsilon>
-<Accelerator type="DSA" />
+<N> 32 </N>
+<epsilon> 1E-8 </epsilon>
+<Accelerator type="OFF"/>
 
 
 <materials>
     <material id="1" name="fuel">
         <total   xs="1.0"/>
-        <scatter xs="0.6"/>
+        <scatter xs="0.94"/>
     </material>
 </materials>
 
 
 <region method="DD">
     <space> 10.0 </space>
-    <mesh> 50 </mesh>
+    <mesh> 200 </mesh>
     <material> 1 </material>
-    <source> 0.1 </source>
+    <source> 0.0 </source>
 </region>
 
 
 <bc> 
-    <left  type="vacuum"/>
-    <right type="reflective"/>
+    <left  type="isotropic" magnitude="1.0"/>
+    <right type="vacuum"/>
 </bc>
 
