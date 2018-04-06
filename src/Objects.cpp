@@ -48,26 +48,32 @@ void Region::set_alpha( const std::vector<double>& mu, const std::string type )
 //==============================================================================
 
 // Vacuum: Zero out psi
-void BCVacuum::set_boundary( std::vector<double>& psi )
+void BCVacuum::set_boundary( std::vector<double>& psi, const int a, 
+                             const int b )
 {
-    std::fill(psi.begin(), psi.end(), 0.0);
+    std::fill(psi.begin()+a, psi.begin()+b, 0.0);
 }
 
 // Reflective: Reverse psi
-void BCReflective::set_boundary( std::vector<double>& psi )
+void BCReflective::set_boundary( std::vector<double>& psi, const int a, 
+                                 const int b )
 {
-    std::reverse(psi.begin(), psi.end());
+    for( int i = a; i < b; i++ ){
+        psi[i] = psi[psi.size()-1-i];
+    }
 }
 
 // Isotropic
-void BCIsotropic::set_boundary( std::vector<double>& psi )
+void BCIsotropic::set_boundary( std::vector<double>& psi, const int a, 
+                                const int b )
 {
-    std::fill(psi.begin(), psi.end(), magnitude);
+    std::fill(psi.begin()+a, psi.begin()+b, magnitude);
 }
 
 // Mono Directional
-void BCMonoDirectional::set_boundary( std::vector<double>& psi )
+void BCMonoDirectional::set_boundary( std::vector<double>& psi, const int a, 
+                                      const int b )
 {
-    std::fill(psi.begin(), psi.end(), 0.0);
+    std::fill(psi.begin()+a, psi.begin()+b, 0.0);
     psi[idx] = val;
 }

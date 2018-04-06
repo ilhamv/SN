@@ -42,11 +42,9 @@ void source_iteration( int& N_iter,
     const int N = mu.size();
     const int J = mesh.size();
     double              S;             // Isotropic source
-    std::vector<double> psi_io( N/2 ); // In/out angular flux
     std::vector<double> phi_old(J);
     double              error;         // Maximum relative error
     double rho_num, rho_denom = 1.0;
-    int idx;
     
     // Set accelerator
     std::shared_ptr<Accelerator> accelerator;
@@ -79,24 +77,21 @@ void source_iteration( int& N_iter,
         //======================================================================
 
         // Set BC
-        BC_left->set_boundary( psi_io );
+        BC_left->set_boundary( psi[0], 0.5*N, N );
         
         // Space sweep
         for( int j = 0; j < J; j++ ){
-            idx = 0; // Index for psi_io, as its size is N/2
 
             // Set isotropic source
             S = 0.5 * ( mesh[j]->SigmaS() * phi[j] + mesh[j]->Q() );
 
             // Direction sweep
             for( int n = 0.5*N; n < N; n++ ){
-                psi[j][n]   = psi_io[idx];
-                psi_io[idx] = ( ( mu[n] - ( 1.0 - mesh[j]->alpha(n) ) * 0.5 
-                                          * mesh[j]->tau() ) * psi_io[idx] 
+                psi[j+1][n] = ( ( mu[n] - ( 1.0 - mesh[j]->alpha(n) ) * 0.5 
+                                          * mesh[j]->tau() ) * psi[j][n]
                                 + S * mesh[j]->dz() )
                               / ( mu[n] + ( 1.0 + mesh[j]->alpha(n) ) * 0.5 
                                           * mesh[j]->tau() );
-                psi[j+1][n] = psi_io[idx]; idx++;
             }
         }
         
@@ -105,22 +100,21 @@ void source_iteration( int& N_iter,
         //======================================================================
 
         // Set BC
-        BC_right->set_boundary( psi_io );
+        BC_right->set_boundary( psi[J], 0, 0.5*N );
 
         // Space sweep
         for( int j = J-1; j >= 0; j-- ){
+
             // Set isotropic source
             S = 0.5 * ( mesh[j]->SigmaS() * phi[j] + mesh[j]->Q() );
 
             // Direction sweep
             for( int n = 0; n < 0.5*N; n++ ){
-                psi[j+1][n] = psi_io[n];
-                psi_io[n]   = ( ( -mu[n] - ( 1.0 + mesh[j]->alpha(n) ) * 0.5 
-                                           * mesh[j]->tau() ) * psi_io[n] 
+                psi[j][n]   = ( ( -mu[n] - ( 1.0 + mesh[j]->alpha(n) ) * 0.5 
+                                           * mesh[j]->tau() ) * psi[j+1][n]
                                 + S * mesh[j]->dz() )
                               / ( -mu[n] + ( 1.0 - mesh[j]->alpha(n) ) * 0.5 
                                          * mesh[j]->tau() );
-                psi[j][n]   = psi_io[n];
             }
         }
         
@@ -195,19 +189,20 @@ void source_iteration_TD_implicit(
     // Report mode
     std::cout<< "Mode: Time-dependent (Implicit)\n";
 
+    // Space method, and set region's alpha
+    std::cout<<"Space discretization: DD\n";
+
     // Source iteration tools
     const int N = mu.size();
     const int J = mesh.size();
     const int K = time.size() - 1;
-    std::vector<std::vector<double>> psi_avg; // Cell-average angular flux
-    std::vector<std::vector<double>> psi_prv; // Previous cell-average ang flux
+    std::vector<std::vector<double>> psi;     // Cell-edge angular flux
+    std::vector<std::vector<double>> psi_prv; // Previous
     double rho;                               // Spectral radius estimate
-    std::vector<double> psi( N/2 );           // In/out angular flux
-    std::vector<double> S(J);                 // Isotropic source
+    double S;                                 // Isotropic source
     std::vector<double> phi_old(J);
     double error;                             // Maximum relative error
     double rho_num, rho_denom = 1.0;
-    int idx;
 
     // Time augment absorption and total cross sections
     const double aug = 1.0 / speed / dt;
@@ -236,23 +231,18 @@ void source_iteration_TD_implicit(
     // Initial conditions
     //=========================================================================
 
-    // Initialize
-    psi_avg.resize( J, std::vector<double>(N,0.0) );
-    psi_prv.resize( J, std::vector<double>(N,0.0) );
+    // Initialize phi
     phi.resize( K+1, std::vector<double>(J,0.0) );
     
-    // Initial cell-average angular flux
-    for( int j = 0; j < J; j++ ){
-        for( int n = 0; n < N; n++ ){
-            psi_avg[j][n] = 0.5 * ( psi_initial[j][n] + psi_initial[j+1][n] );
-        }
-    }
+    // Initial cell-edge angular flux
+    psi = psi_initial;
 
     // Initial cell-average scalar flux
     for( int j = 0; j < J; j++ ){
         for( int n = 0; n < N; n++ ){
-            phi[0][j] += psi_avg[j][n]* w[n];
+            phi[0][j] += ( psi[j][n] + psi[j+1][n] ) * w[n];
         }
+        phi[0][j] *= 0.5;
     }
 
 
@@ -265,50 +255,35 @@ void source_iteration_TD_implicit(
         int N_iter = 0;
 
         // Set first guess and previous time
-        psi_prv = psi_avg;
+        psi_prv = psi;
         phi[k] = phi[k-1];
-
-        // Set up psi_prv as the non isotropic source
-        for( int j = 0; j < J; j++ ){
-            for( int n = 0; n < N; n++ ){
-                psi_prv[j][n] *= aug;
-            }
-        }
 
 
         //======================================================================
-        // Source Iteration - Implicit time dependent
+        // Source Iteration - Implicit time
         //======================================================================
         
         do{
-            // Set isotropic source
-            for( int j = 0; j < J; j++ ){
-                S[j] = 0.5 * ( mesh[j]->SigmaS() * phi[k][j] + mesh[j]->Q() );
-            }
-
-            // Reset phi
-            phi_old = phi[k];
-            std::fill(phi[k].begin(), phi[k].end(), 0.0);
-
             //==================================================================
             // Forward sweep
             //==================================================================
 
             // Set BC
-            BC_left->set_boundary( psi );
+            BC_left->set_boundary( psi[0], 0.5*N, N );
             
-            // Sweep
+            // Space sweep
             for( int j = 0; j < J; j++ ){
-                idx = 0; // Index for psi, as its size is N/2
+                
+                // Isotropic source
+                S = 0.5 * ( mesh[j]->SigmaS() * phi[k][j] + mesh[j]->Q() );
+                
+                // Direction sweep
                 for( int n = 0.5*N; n < N; n++ ){
-                    psi_avg[j][n] = psi[idx];
-                    psi[idx] = ( ( mu[n] - 0.5 * mesh[j]->tau() ) * psi[idx] 
-                                 + ( S[j] + psi_prv[j][n] )
-                                   * mesh[j]->dz() )
+                    psi[j+1][n] = ( ( mu[n] - 0.5 * mesh[j]->tau() ) * psi[j][n]
+                                    + ( S + aug * 0.5 
+                                        * ( psi_prv[j][n] + psi_prv[j+1][n] ) )
+                                    * mesh[j]->dz() )
                                / ( mu[n] + 0.5 * mesh[j]->tau() );
-                    psi_avg[j][n] = 0.5 * (psi_avg[j][n] + psi[idx]);
-                    phi[k][j] += psi_avg[j][n] * w[n];
-                    idx++;
                 }
             }
             
@@ -317,19 +292,37 @@ void source_iteration_TD_implicit(
             //==================================================================
 
             // Set BC
-            BC_right->set_boundary( psi );
+            BC_right->set_boundary( psi[J], 0, 0.5*N );
 
-            // Sweep
+            // Space sweep
             for( int j = J-1; j >= 0; j-- ){
+                
+                // Isotropic source
+                S = 0.5 * ( mesh[j]->SigmaS() * phi[k][j] + mesh[j]->Q() );
+                
                 for( int n = 0; n < 0.5*N; n++ ){
-                    psi_avg[j][n] = psi[n];
-                    psi[n] = ( ( -mu[n] - 0.5 * mesh[j]->tau() ) * psi[n] 
-                               + ( S[j] + psi_prv[j][n] )
-                                   * mesh[j]->dz() )
+                    psi[j][n] = ( ( -mu[n] - 0.5 * mesh[j]->tau() )* psi[j+1][n]
+                                  + ( S + aug * 0.5 
+                                      * ( psi_prv[j][n] + psi_prv[j+1][n] ) )
+                                  * mesh[j]->dz() )
                              / ( -mu[n] + 0.5 * mesh[j]->tau() );
-                    psi_avg[j][n] = 0.5 * (psi_avg[j][n] + psi[n]);
-                    phi[k][j] += psi_avg[j][n] * w[n];
                 }
+            }
+
+            //==================================================================
+            // Update flux
+            //==================================================================
+            
+            // Store old phi
+            phi_old = phi[k]; 
+
+            // Update phi
+            for( int j = 0; j < J; j++ ){
+                phi[k][j] = 0.0;
+                for( int n = 0; n < N; n++ ){
+                    phi[k][j] += ( psi[j][n] + psi[j+1][n] ) * w[n];
+                }
+                phi[k][j] *= 0.5;
             }
 
             // Accelerate
@@ -354,7 +347,7 @@ void source_iteration_TD_implicit(
 
             N_iter++;
 
-        } while ( error > epsilon );
+        } while ( error > ( rho / ( 1.0 - rho ) ) * epsilon );
         
         // Some outputs
         std::cout<< "Report for k = " << k << " ("<< time[k] << " s)\n";
@@ -396,25 +389,23 @@ void source_iteration_TD_MB(
 
     // Report mode
     std::cout<< "Mode: Time-dependent (Multiple-Balance)\n";
+    
+    // Space method, and set region's alpha
+    std::cout<<"Space discretization: DD\n";
 
     // Source iteration tools
     const int N = mu.size();
     const int J = mesh.size();
     const int K = time.size() - 1;
-    std::vector<std::vector<double>> psi_avg; // Cell-average angular flux
-    std::vector<std::vector<double>> psi_edg; // Cell-edge angular flux
-    std::vector<std::vector<double>> psi_prv; // Previous cell-average ang flux
+    std::vector<std::vector<double>> psi;     // Cell-edge angular flux
+    std::vector<std::vector<double>> psi_prv; // Previous
     double rho;                               // Spectral radius estimate
-    std::vector<double> psi_b( N/2 );         // Boundary angular flux
-    double              psi_b_k;              // Boundary angular flux (t-avg)
+    double              psi_b;                // Boundary angular flux (t-avg)
     std::vector<double> phi_old(J);
-    std::vector<double> phi_k(J);
-    std::vector<double> Jc(J+1,0);            // Cell-edge current
-    std::vector<std::vector<double>> S;       // RHS source
-    std::vector<double>              Sb(N);   // BC source
+    std::vector<double> Jc(J+1);              // Cell-edge current
+    double              S,S0,S1;              // Isotropic sources
     double error;                             // Maximum relative error
     double rho_num, rho_denom = 1.0;
-    int idx;
 
     // Set accelerator
     std::shared_ptr<Accelerator> accelerator;
@@ -436,7 +427,7 @@ void source_iteration_TD_MB(
     const double gamma    = 1.0 / speed/ dt;
     const double gamma_sq = gamma * gamma;
     std::vector<std::vector<double>> eta, xi, alpha, beta, A, B, C;
-    std::vector<double> Ab(N), Bb(N);
+    std::vector<double> Ab(N), Bb(N), lambda(J);
 
     eta.resize( J, std::vector<double>(N,0.0) );
     xi.resize( J, std::vector<double>(N,0.0) );
@@ -447,6 +438,7 @@ void source_iteration_TD_MB(
     C.resize( J, std::vector<double>(N,0.0) );
 
     for( int j = 0; j < J; j++ ){
+        lambda[j] = mesh[j]->dz() * ( 0.5 * mesh[j]->SigmaA() + gamma );
         for( int n = 0; n < N; n++ ){
             eta[j][n] = mesh[j]->tau() + 2.0 * mu[n];
             xi[j][n]  = mesh[j]->tau() - 2.0 * mu[n];
@@ -480,31 +472,25 @@ void source_iteration_TD_MB(
     // Initial conditions
     //=========================================================================
 
-    // Initialize
-    psi_avg.resize( J, std::vector<double>(N,0.0) );
-    psi_prv.resize( J, std::vector<double>(N,0.0) );
-    psi_edg.resize( J+1, std::vector<double>(N,0.0) );
+    // Initialize phi
     phi.resize( K+1, std::vector<double>(J,0.0) );
-    S.resize( J-1, std::vector<double>(N,0.0) );
     
-    // Initial cell-average
-    for( int j = 0; j < J; j++ ){
-        phi[0][j] = 0.0;
-        for( int n = 0; n < N; n++ ){
-            // Angular flux
-            psi_avg[j][n] = 0.5 * ( psi_initial[j][n] + psi_initial[j+1][n] );
-            
-            // Scalar flux
-            phi[0][j] += psi_avg[j][n]* w[n];
-        }
-    }
+    // Initial cell-edge angular flux
+    psi = psi_initial;
 
+    // Initial cell-average scalar flux
+    for( int j = 0; j < J; j++ ){
+        for( int n = 0; n < N; n++ ){
+            phi[0][j] += ( psi[j][n] + psi[j+1][n] ) * w[n];
+        }
+        phi[0][j] *= 0.5;
+    }
+    
     // Initial cell-edge current
-    psi_edg = psi_initial;
     for( int j = 0; j < J+1; j++ ){
         Jc[j] = 0.0;
         for( int n = 0; n < N; n++ ){
-            Jc[j] += mu[n] * psi_edg[j][n]* w[n];
+            Jc[j] += mu[n] * psi[j][n]* w[n];
         }
     }
     
@@ -518,7 +504,7 @@ void source_iteration_TD_MB(
         int N_iter = 0;
 
         // Set first guess and previous time
-        psi_prv = psi_avg;
+        psi_prv = psi;
         phi[k] = phi[k-1];
 
         //======================================================================
@@ -526,100 +512,64 @@ void source_iteration_TD_MB(
         //======================================================================
         
         do{
-            // Set cell-time-average scalar flux --> phi_old
-            for( int j = 0; j < J; j++ ){
-                phi_k[j] = 0.5 / gamma * 
-                             ( 1.0 / mesh[j]->dz() * ( Jc[j+1] - Jc[j] ) 
-                               + ( mesh[j]->SigmaA() + 2.0 * gamma ) * phi[k][j]
-                               - mesh[j]->Q() );
-            }
-
-            // Set RHS source
-            for( int j = 0; j < J-1; j++ ){
-                for( int n = 0; n < N; n++ ){
-                    S[j][n] = gamma * ( mesh[j+1]->dz() * ( mesh[j+1]->SigmaS() 
-                                                            * phi_k[j+1] 
-                                                            + mesh[j+1]->Q() )
-                                        + mesh[j]->dz() * ( mesh[j]->SigmaS() 
-                                                            * phi_k[j] 
-                                                            + mesh[j]->Q() ) )
-                              + 0.5 * ( eta[j+1][n] * ( mesh[j+1]->SigmaS() 
-                                                        * phi[k][j+1] 
-                                                        + mesh[j+1]->Q() )
-                                        + xi[j][n] * ( mesh[j]->SigmaS() 
-                                                        * phi[k][j] 
-                                                        + mesh[j]->Q() ) );
-                }
-            }
-
-            // Set BC source
-            for( int n = 0.5*N; n < N; n++ ){
-                Sb[n] = gamma * mesh[0]->dz() * ( mesh[0]->SigmaS() 
-                                                  * phi_k[0] + mesh[0]->Q() )
-                          + 0.5 * eta[0][n] * ( mesh[0]->SigmaS() 
-                                                * phi[k][0] + mesh[0]->Q() ) ;
-            }
-
-            for( int n = 0; n < 0.5*N; n++ ){
-                Sb[n] = gamma * mesh[J-1]->dz() * ( mesh[J-1]->SigmaS() 
-                                                    * phi_k[J-1] 
-                                                    + mesh[J-1]->Q() )
-                          + 0.5 * xi[J-1][n] * ( mesh[J-1]->SigmaS() 
-                                                 * phi[k][J-1] 
-                                                 + mesh[J-1]->Q() ) ;
-            }
-
-            // Set old phi for error calculation
-            phi_old = phi[k];
 
             //==================================================================
             // Begin forward sweep
             //==================================================================
             
-            // Set BC
-            BC_left->set_boundary( psi_b );
-            
-            idx = 0;
-            for( int n = 0.5*N; n < N; n++ ){
-                // Store BC
-                psi_edg[0][n] = psi_b[idx];
+            // Isotropic source
+            S1 = mesh[0]->SigmaS() * phi[k][0] + mesh[0]->Q();
+            S = 0.5 * mesh[0]->SigmaS() * ( Jc[1] - Jc[0] 
+                                              + mesh[0]->tau() * phi[k][0] )
+                + lambda[0] * S1;
 
+            // Set BC
+            BC_left->set_boundary( psi[0], 0.5*N, N );
+            
+            for( int n = 0.5*N; n < N; n++ ){
+                
                 // Set time-average BC
                 if( BC_left->type() == "Reflective" ){
-                    psi_b_k = 1.0 / ( 4.0 * mu[n] * gamma )
-                        * (-(( xi[0][n] * beta[0][n] + mesh[0]->dz() * gamma_sq)
-                             * psi_edg[1][N-1-n] 
-                            +( xi[0][n] * alpha[0][n]+ mesh[0]->dz() * gamma_sq)
-                             * psi_edg[0][N-1-n] )
-                           + gamma * mesh[0]->dz() * ( mesh[0]->SigmaS() 
-                                                       * phi_k[0]
-                                                       + mesh[0]->Q() )
-                           + 0.5 * xi[0][n] * ( mesh[0]->SigmaS() * phi_old[0]
-                                                + mesh[0]->Q() )
-                           + 2.0 * mesh[0]->dz() * gamma_sq * psi_prv[0][N-1-n]
-                           );
-                } else{ psi_b_k = psi_b[idx]; }
+                    psi_b = 1.0 / ( 4.0 * mu[n] * gamma )
+                        * (-( xi[0][n] * beta[0][n] + mesh[0]->dz() * gamma_sq )
+                             * psi[1][N-1-n] 
+                           -( xi[0][n] * alpha[0][n]+ mesh[0]->dz() * gamma_sq )
+                             * psi[0][N-1-n] 
+                           + S - mu[n] * S1 + mesh[0]->dz() * gamma_sq 
+                           * ( psi_prv[0][N-1-n] + psi_prv[1][N-1-n] ) );
+                } else{ psi_b = psi[0][n]; }
 
-                psi_edg[1][n] = ( Sb[n] - Bb[n] * psi_edg[0][n] 
-                                  + 2.0 * mesh[0]->dz() * gamma_sq 
-                                    * psi_prv[0][n]
-                                  + 4.0 * mu[n] * gamma * psi_b_k ) / Ab[n];
-
-                idx++;
+                psi[1][n] = ( S + mu[n] * S1  - Bb[n] * psi[0][n] 
+                                + mesh[0]->dz() * gamma_sq 
+                                  * ( psi_prv[0][n] + psi_prv[1][n] )
+                                + 4.0 * mu[n] * gamma * psi_b ) / Ab[n];
             }
 
             //==================================================================
             // Continue forward sweep
             //==================================================================
 
+            // Space sweep
             for( int j = 0; j < J-1; j++ ){
+
+                // Isotropic source
+                S0 = S1;
+                S1 = mesh[j+1]->SigmaS() * phi[k][j+1] + mesh[j+1]->Q();
+                S = 0.5* ( mesh[j+1]->SigmaS()
+                           * (Jc[j+2] - Jc[j+1]+ mesh[j+1]->tau() * phi[k][j+1])
+                           + mesh[j]->SigmaS()
+                             * ( Jc[j+1] - Jc[j] + mesh[j]->tau() * phi[k][j] ))
+                    + lambda[j+1] * S1 + lambda[j] * S0;
+
+                // Direction sweep
                 for( int n = 0.5*N; n < N; n++ ){
-                    psi_edg[j+2][n] = ( S[j][n] 
-                                        - B[j][n] * psi_edg[j+1][n] 
-                                        - C[j][n] * psi_edg[j][n] 
-                                        + 2.0 * gamma_sq
-                                          * ( mesh[j+1]->dz() * psi_prv[j+1][n]
-                                              + mesh[j]->dz() * psi_prv[j][n] ))
+                    psi[j+2][n] = ( S + mu[n] * ( S1 - S0 )
+                                    - B[j][n] * psi[j+1][n] 
+                                    - C[j][n] * psi[j][n] 
+                                    + gamma_sq * ( mesh[j+1]->dz()
+                                       * ( psi_prv[j+1][n] + psi_prv[j+2][n] ) 
+                                      + mesh[j]->dz()
+                                       * ( psi_prv[j][n] + psi_prv[j+1][n] ) ) )
                                       / A[j][n];
                 }
             }
@@ -628,36 +578,35 @@ void source_iteration_TD_MB(
             // Begin backward sweep
             //==================================================================
             
+            // Isotropic source
+            S0 = mesh[J-1]->SigmaS() * phi[k][J-1] + mesh[J-1]->Q();
+            S = 0.5 * mesh[J-1]->SigmaS() * ( Jc[J] - Jc[J-1] 
+                                              + mesh[J-1]->tau() * phi[k][J-1] )
+                + lambda[J-1] * S0;
+
             // Set BC
-            BC_right->set_boundary( psi_b );
+            BC_right->set_boundary( psi[J], 0, 0.5*N );
             
             for( int n = 0; n < 0.5*N; n++ ){
-                // Store BC
-                psi_edg[J][n] = psi_b[n];
                 
                 // Set time-average BC
                 if( BC_right->type() == "Reflective" ){
-                    psi_b_k = - 1.0 / ( 4.0 * mu[n] * gamma )
+                    psi_b = - 1.0 / ( 4.0 * mu[n] * gamma )
                         * ( -( eta[J-1][n] * beta[J-1][n] + mesh[J-1]->dz() 
                                                             * gamma_sq ) 
-                             * psi_edg[J][N-1-n]
+                             * psi[J][N-1-n]
                             -( eta[J-1][n] * alpha[J-1][n] + mesh[J-1]->dz() 
                                                              * gamma_sq ) 
-                             * psi_edg[J-1][N-1-n]
-                           + gamma * mesh[J-1]->dz() * ( mesh[J-1]->SigmaS() 
-                                                       * phi_k[J-1]
-                                                       + mesh[J-1]->Q() )
-                           + 0.5 * eta[J-1][n] * ( mesh[J-1]->SigmaS() 
-                                                   * phi_old[J-1] 
-                                                   + mesh[J-1]->Q() )
-                           + 2.0 * mesh[J-1]->dz() * gamma_sq 
-                             * psi_prv[J-1][N-1-n] );
-                } else{ psi_b_k = psi_b[n]; }
+                             * psi[J-1][N-1-n]
+                           + S + mu[n] * S0
+                           + mesh[J-1]->dz() * gamma_sq 
+                             * ( psi_prv[J-1][N-1-n] + psi_prv[J][N-1-n] ) );
+                } else{ psi_b = psi[J][n]; }
 
-                psi_edg[J-1][n] = ( Sb[n] - Ab[n] * psi_edg[J][n]
-                                    + 2.0 * mesh[J-1]->dz() * gamma_sq 
-                                      * psi_prv[J-1][n]
-                                    - 4.0 * mu[n] * gamma * psi_b_k ) / Bb[n];
+                psi[J-1][n] = ( S - mu[n] * S0 - Ab[n] * psi[J][n]
+                                    + mesh[J-1]->dz() * gamma_sq 
+                                      * ( psi_prv[J-1][n] + psi_prv[J][n] )
+                                    - 4.0 * mu[n] * gamma * psi_b ) / Bb[n];
             }
 
             //==================================================================
@@ -665,36 +614,51 @@ void source_iteration_TD_MB(
             //==================================================================
 
             for( int j = J-2; j >= 0; j-- ){
+
+                // Isotropic source
+                S1 = S0;
+                S0 = mesh[j]->SigmaS() * phi[k][j] + mesh[j]->Q();
+                S = 0.5* ( mesh[j+1]->SigmaS()
+                           * (Jc[j+2] - Jc[j+1]+ mesh[j+1]->tau() * phi[k][j+1])
+                           + mesh[j]->SigmaS()
+                             * ( Jc[j+1] - Jc[j] + mesh[j]->tau() * phi[k][j] ))
+                    + lambda[j+1] * S1 + lambda[j] * S0;
+
                 for( int n = 0; n < 0.5*N; n++ ){
-                    psi_edg[j][n] = ( S[j][n] 
-                                      - A[j][n] * psi_edg[j+2][n]
-                                      - B[j][n] * psi_edg[j+1][n] 
-                                      + 2.0 * gamma_sq
-                                        * ( mesh[j+1]->dz() * psi_prv[j+1][n]
-                                            + mesh[j]->dz() * psi_prv[j][n] ))
+                    psi[j][n] = ( S + mu[n] * ( S1 - S0 )
+                                      - A[j][n] * psi[j+2][n]
+                                      - B[j][n] * psi[j+1][n] 
+                                      + gamma_sq * ( mesh[j+1]->dz() 
+                                         * ( psi_prv[j+1][n] + psi_prv[j+2][n] )
+                                        + mesh[j]->dz() 
+                                       * ( psi_prv[j][n] + psi_prv[j+1][n] ) ) )
                                       / C[j][n];
                 }
             }
 
             //==================================================================
-            // Update cell-edge current, cell-average angular and scalar flux
+            // Update cell-average flux and cell-edge current
             //==================================================================
             
-            for( int j = 0; j < J+1; j++ ){
-                Jc[j] = 0;
-                for( int n = 0; n < N; n++ ){
-                    Jc[j] += mu[n] * psi_edg[j][n]* w[n];
-                }
-            }
-            
+            // Store old phi
+            phi_old = phi[k]; 
+
+            // Update phi
             for( int j = 0; j < J; j++ ){
                 phi[k][j] = 0.0;
                 for( int n = 0; n < N; n++ ){
-                    psi_avg[j][n] = 0.5 * ( psi_edg[j][n] + psi_edg[j+1][n] );
-                    phi[k][j] += psi_avg[j][n] * w[n];
+                    phi[k][j] += ( psi[j][n] + psi[j+1][n] ) * w[n];
+                }
+                phi[k][j] *= 0.5;
+            }
+
+            for( int j = 0; j < J+1; j++ ){
+                Jc[j] = 0;
+                for( int n = 0; n < N; n++ ){
+                    Jc[j] += mu[n] * psi[j][n]* w[n];
                 }
             }
-    
+            
             // Accelerate
             accelerator->accelerate( mesh, phi_old, phi[k] );
 
@@ -718,7 +682,7 @@ void source_iteration_TD_MB(
 
             N_iter++;
 
-        } while ( error > epsilon );
+        } while ( error > ( rho / ( 1.0 - rho ) ) * epsilon );
         
         // Some outputs
         std::cout<< "Report for k = " << k << " ("<< time[k] << " s)\n";

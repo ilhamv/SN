@@ -77,7 +77,8 @@ class BC
     public:
         BC( const std::string t ): bc_type(t) {};
         ~BC() {};
-        virtual void set_boundary( std::vector<double>& psi ) = 0;
+        virtual void set_boundary( std::vector<double>& psi, 
+                                   const int a, const int b ) = 0;
         virtual std::string type() final { return bc_type; }
 };
 
@@ -86,7 +87,7 @@ class BCVacuum : public BC
     public:
         BCVacuum(): BC("Vacuum") {};
         ~BCVacuum() {};
-        void set_boundary( std::vector<double>& psi );
+        void set_boundary( std::vector<double>& psi, const int a, const int b );
 };
 
 class BCReflective : public BC
@@ -94,7 +95,7 @@ class BCReflective : public BC
     public:
         BCReflective(): BC("Reflective") {};
         ~BCReflective() {};
-        void set_boundary( std::vector<double>& psi );
+        void set_boundary( std::vector<double>& psi, const int a, const int b );
 };
 
 class BCIsotropic : public BC
@@ -105,7 +106,7 @@ class BCIsotropic : public BC
     public:
         BCIsotropic( const double m ): BC("Isotropic"), magnitude(m) {};
         ~BCIsotropic() {};
-        void set_boundary( std::vector<double>& psi );
+        void set_boundary( std::vector<double>& psi, const int a, const int b );
 };
 
 class BCMonoDirectional : public BC
@@ -118,7 +119,7 @@ class BCMonoDirectional : public BC
         BCMonoDirectional( const double v, const unsigned long long i ): 
             BC("Isotropic"), val(v), idx(i) {};
         ~BCMonoDirectional() {};
-        void set_boundary( std::vector<double>& psi );
+        void set_boundary( std::vector<double>& psi, const int a, const int b );
 };
 
 #endif // _OBJECTS_H
