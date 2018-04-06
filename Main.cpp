@@ -91,10 +91,8 @@ int main( int argc, char* argv[] )
                                     ( input_region.child_value("source") );
     const int N_region = r_space.size();
 
-    // Space discretization method (Time dependent: DD only)
+    // Space discretization method (Steady state only)
     std::string space_method = input_region.attribute("method").value();
-    if( input_file.child("TD") ) { space_method = "DD"; }
-    std::cout<<"Space discretization: "<<space_method<<"\n";
 
     // Set up region properties
     for( int i = 0; i < N_region; i++ ){
@@ -105,9 +103,6 @@ int main( int argc, char* argv[] )
                                           find_by_id( material, r_material[i] );
         // Create region
         region.push_back( std::make_shared<Region>( r_M, r_dz, r_Q[i] ));
-
-        // Alpha for space discretization
-        region.back()->set_alpha( mu, space_method );
     }
 
 
@@ -227,8 +222,9 @@ int main( int argc, char* argv[] )
     int                 N_iter;           // # of iterations
 
     if( !TD ){
-        source_iteration( N_iter, epsilon, mesh, mu, w, BC_left, BC_right, phi, 
-                          rho, accelerator_type);
+        source_iteration( N_iter, epsilon, mesh, region, mu, w, BC_left, 
+                          BC_right, phi, psi, rho, space_method, 
+                          accelerator_type);
     }
     
 
@@ -264,11 +260,13 @@ int main( int argc, char* argv[] )
     H5::DataSet dataset;
     H5::Group group;
     H5::DataSpace space_scalar(H5S_SCALAR);
-    H5::DataSpace space_vector;;
+    H5::DataSpace space_vector;
+    H5::DataSpace space_2D;
     H5::DataType type_int    = H5::PredType::NATIVE_INT;
     H5::DataType type_double = H5::PredType::NATIVE_DOUBLE;
     H5::StrType  type_string(0, H5T_VARIABLE);
     hsize_t dims[1]; 
+    hsize_t dims_2D[2]; 
 
     // Problem summary
     dataset = output.createDataSet( "N", type_int, space_scalar );
@@ -276,15 +274,12 @@ int main( int argc, char* argv[] )
     dataset = output.createDataSet( "epsilon", type_double, space_scalar );
     dataset.write(&epsilon, type_double);
     if(TD){
-        dataset = output.createDataSet( "N_iter", type_double, space_scalar );
-        dataset.write(&N_iter, type_double);
     }
-    // Material, Region, Mesh
+    // BC
     dataset = output.createDataSet( "bc_left", type_string, space_scalar);
     dataset.write(BC_left->type(), type_string);
     dataset = output.createDataSet( "bc_right", type_string, space_scalar);
     dataset.write(BC_right->type(), type_string);
-
     // Quadrature sets
     dims[0] = N;
     space_vector = H5::DataSpace(1,dims);
@@ -298,6 +293,10 @@ int main( int argc, char* argv[] )
     //==========================================================================
 
     if( !TD ){
+        // # of iterations
+        dataset = output.createDataSet( "N_iter", type_int, space_scalar );
+        dataset.write(&N_iter, type_int);
+
         // Spectral radius estimates
         rho.erase(rho.begin());
         dims[0] = rho.size();
@@ -314,6 +313,20 @@ int main( int argc, char* argv[] )
         dataset.write(phi.data(), type_double);
         dataset = output.createDataSet( "z", type_double, space_vector);
         dataset.write(z.data(), type_double);
+        
+        // Angular flux solution
+        dims_2D[0] = J;
+        dims_2D[1] = N;
+        space_2D = H5::DataSpace(2,dims_2D);
+        dataset = output.createDataSet( "angular_flux", type_double, 
+                                        space_2D);
+        phi.resize(N*J);
+        for( int j = 0; j < J; j++ ){
+            for( int n = 0; n < N; n++ ){
+                phi[N*j+n] = psi[j][n];
+            }
+        }
+        dataset.write(phi.data(), type_double);
     }
     
     //==========================================================================
@@ -322,7 +335,6 @@ int main( int argc, char* argv[] )
 
     if( TD ){
         phi.resize((K+1)*J);
-        idx = 0;
         for( int k = 0; k < K+1; k++ ){
             for( int j = 0; j < J; j++ ){
                 phi[J*k+j] = phi_t[k][j];

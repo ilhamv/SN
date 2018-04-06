@@ -1,7 +1,7 @@
 <?xml version = '1.0' encoding = 'UTF-8'?>
 
 
-<N> 32 </N>
+<N> 2 </N>
 <epsilon> 1E-8 </epsilon>
 <Accelerator type="OFF"/>
 
@@ -14,7 +14,7 @@
 </materials>
 
 
-<region method="DD">
+<region method="SC">
     <space> 10.0 </space>
     <mesh> 200 </mesh>
     <material> 1 </material>
@@ -23,7 +23,7 @@
 
 
 <bc> 
-    <left  type="isotropic" magnitude="1.0"/>
+    <left  type="isotropic" magnitude="2.0"/>
     <right type="vacuum"/>
 </bc>
 

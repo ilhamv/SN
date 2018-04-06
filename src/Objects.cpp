@@ -40,7 +40,6 @@ void Region::set_alpha( const std::vector<double>& mu, const std::string type )
             r_alpha[n] = 1.0 / ( std::tanh( 0.5 * r_tau / mu[n] ) )
                          - ( 2.0 * mu[n] / r_tau );
         }
-
     }
 }
 
