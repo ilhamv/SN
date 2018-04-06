@@ -194,8 +194,26 @@ int main( int argc, char* argv[] )
 
         // Initial condition
         std::string ic_type = input_TD.child("IC").attribute("type").value();
+        std::vector<double> ic_param = parse_vector<double>( input_TD.
+                                       child("IC").attribute("param").value() );
+        const std::vector<double> r_space = parse_vector<double>
+                                        ( input_region.child_value("space") );
         if( ic_type == "zero" ){
             psi_initial.resize(J+1, std::vector<double>(N,0.0));
+        } else if( ic_type == "one" ){
+            // alpha + beta mu^2
+            double a,b,alpha,beta;
+            std::vector<double> psi_ic(N);
+            alpha = ic_param[0]; beta = ic_param[1];
+
+            for( int n = 0; n < N; n++ ){
+                a = -1.0;
+                for( int m = 0; m < n; m++ ){ a += w[m]; }
+                b = a + w[n];
+                psi_ic[n] = 1.0 / w[n] * ( alpha * w[n] 
+                                           + beta / 3.0 * ( b*b*b - a*a*a ) );
+            }
+            psi_initial.resize(J+1, psi_ic);
         }
         
         // Time step and time

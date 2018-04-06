@@ -21,8 +21,7 @@ std::vector<T> parse_vector(std::string const& pointLine)
     std::istringstream iss(pointLine);
 
     return std::vector<T>{ std::istream_iterator<T>(iss), 
-                           std::istream_iterator<T>()
-                         };
+                           std::istream_iterator<T>() };
 }
 
 // Find object pointer by id number
