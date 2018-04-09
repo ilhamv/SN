@@ -1,22 +1,22 @@
 <?xml version = '1.0' encoding = 'UTF-8'?>
 
 
-<N> 8 </N>
+<N> 2 </N>
 <epsilon> 1E-6 </epsilon>
 <Accelerator type="DSA" />
 
 
 <TD method="implicit">
-    <time final="0.01" step="50"/>
+    <time final="4.0" step="1000"/>
     <IC type="zero"/>
-    <speed> 2200.0 </speed>
+    <speed> 100.0 </speed>
 </TD>
 
 
 <materials>
     <material id="1" name="fuel">
         <total   xs="1.0"/>
-        <scatter xs="0.6"/>
+        <scatter xs="1.0"/>
     </material>
 </materials>
 
@@ -25,12 +25,12 @@
     <space> 10.0 </space>
     <mesh> 50 </mesh>
     <material> 1 </material>
-    <source> 0.1 </source>
+    <source> 0.0 </source>
 </region>
 
 
 <bc> 
-    <left  type="vacuum"/>
-    <right type="reflective"/>
+    <left  type="linear" param="0.5 -0.05"/>
+    <right type="linear" param="1.0 -0.05"/>
 </bc>
 

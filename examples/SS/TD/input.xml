@@ -3,13 +3,13 @@
 
 <N> 8 </N>
 <epsilon> 1E-6 </epsilon>
-<Accelerator type="OFF" />
+<Accelerator type="DSA" />
 
 
-<TD method="MB">
-    <time final="0.001" step="100"/>
-    <IC type="one" param="1.0 3.0"/>
-    <speed> 5000.0 </speed>
+<TD method="implicit">
+    <time final="0.01" step="50"/>
+    <IC type="zero"/>
+    <speed> 2200.0 </speed>
 </TD>
 
 
@@ -30,7 +30,7 @@
 
 
 <bc> 
-    <left  type="reflective"/>
+    <left  type="vacuum"/>
     <right type="reflective"/>
 </bc>
 

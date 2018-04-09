@@ -10,11 +10,11 @@ t = np.array(f['time']);
 z = np.array(f['z']);
 
 f = h5py.File('steady.h5', 'r');
-phi0 = np.array([1.0,2.0])
-z_s = np.array([0.,10.])
+phi0 = np.array(f['scalar_flux'])
+z_s = np.array(f['z'])
 
 fig = plt.figure()
-ax = plt.axes(xlim=(-0.5, 10.5), ylim=(0.0, 2.2))
+ax = plt.axes(xlim=(-0.5, 10.5), ylim=(0.0, 0.3))
 line, = ax.plot([], [], 'o', lw=2)
 line2, = ax.plot([], [], lw=2)
 time_text = ax.text(0.02, 0.95, '', transform=ax.transAxes)

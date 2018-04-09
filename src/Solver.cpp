@@ -154,7 +154,7 @@ void source_iteration( int& N_iter,
         rho.push_back( rho_num/rho_denom );
         rho_denom = rho_num;
 
-    } while ( error > ( rho.back() / ( 1.0 - rho.back() ) ) * epsilon );
+    } while ( error > ( 1.0 - rho.back() ) * epsilon );
         
     // Some outputs
     N_iter = rho.size();
@@ -347,7 +347,7 @@ void source_iteration_TD_implicit(
 
             N_iter++;
 
-        } while ( error > ( rho / ( 1.0 - rho ) ) * epsilon );
+        } while ( error > ( 1.0 - rho ) * epsilon );
         
         // Some outputs
         std::cout<< "Report for k = " << k << " ("<< time[k] << " s)\n";
@@ -682,7 +682,7 @@ void source_iteration_TD_MB(
 
             N_iter++;
 
-        } while ( error > ( rho / ( 1.0 - rho ) ) * epsilon );
+        } while ( error > ( 1.0 - rho) * epsilon );
         
         // Some outputs
         std::cout<< "Report for k = " << k << " ("<< time[k] << " s)\n";

@@ -14,7 +14,7 @@
 </materials>
 
 
-<region method="SC">
+<region method="DD">
     <space> 10.0 </space>
     <mesh> 200 </mesh>
     <material> 1 </material>

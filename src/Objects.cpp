@@ -77,3 +77,13 @@ void BCMonoDirectional::set_boundary( std::vector<double>& psi, const int a,
     std::fill(psi.begin()+a, psi.begin()+b, 0.0);
     psi[idx] = val;
 }
+
+// Linear
+void BCLinear::set_boundary( std::vector<double>& psi, const int a, 
+                                      const int b )
+{
+    int idx = 0;
+    for( int i = a; i < b; i++ ){
+        psi[i] = psi_b[idx]; idx++;
+    }
+}

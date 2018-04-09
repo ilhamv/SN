@@ -3,6 +3,7 @@
 #include <vector>
 #include <limits> 
 #include <memory>
+#include <cmath>
 
 #include "pugixml.hpp"
 #include "H5Cpp.h"
@@ -162,12 +163,31 @@ int main( int argc, char* argv[] )
             for( int n = 0; n < N; n++ ){
                 if( mu[n] - w[n]/2 <= bc_mu && bc_mu <= mu[n] + w[n]/2 ){
                     b_val = bc_mu * magnitude / mu[n] / w[n];
-                    if( bc_side == "left" ){ b_idx = n-N/2; }
-                    if( bc_side == "right" ){ b_idx = n; }
+                    b_idx = n;
                     break;
                 }
             }
             BC_set = std::make_shared<BCMonoDirectional>(b_val, b_idx);
+        } else if( bc_type == "linear" ){
+            std::vector<double> bc_param = parse_vector<double>( bc.
+                                                attribute("param").value() );
+            const double a = bc_param[0];
+            const double b = bc_param[1];
+            std::vector<double> psi_b;
+            int idx; double val, mu1, mu2;
+            if( bc_side == "left" )  { idx = N/2; }
+            if( bc_side == "right" ) { idx = 0; }
+            for( int n = idx; n<idx+N/2; n++ ){
+                mu1 = -1.0;
+                for( int m = 0; m < n; m++ ){ mu1 += w[m]; }
+                mu2 = mu1 + w[n];
+                std::cout<<n<<"  "<<mu1<<"  "<<mu2<<"\n";
+                val = 1.0 / ( mu[n]*w[n] ) 
+                      * ( 0.5 * a * mu2*mu2 + 1.0/3.0 * b * mu2*mu2*mu2
+                          - ( 0.5 * a * mu1*mu1 + 1.0/3.0 * b * mu1*mu1*mu1 ) );
+                psi_b.push_back(std::abs(val));
+            }
+            BC_set = std::make_shared<BCLinear>(psi_b);
         }
         if( bc_side == "left" )  { BC_left  = BC_set; }
         if( bc_side == "right" ) { BC_right = BC_set; }

@@ -117,8 +117,18 @@ class BCMonoDirectional : public BC
 
     public:
         BCMonoDirectional( const double v, const unsigned long long i ): 
-            BC("Isotropic"), val(v), idx(i) {};
+            BC("Mono"), val(v), idx(i) {};
         ~BCMonoDirectional() {};
+        void set_boundary( std::vector<double>& psi, const int a, const int b );
+};
+class BCLinear : public BC
+{
+    private:
+        const std::vector<double> psi_b;
+
+    public:
+        BCLinear( std::vector<double> v ): BC("Linear"), psi_b(v){};
+        ~BCLinear() {};
         void set_boundary( std::vector<double>& psi, const int a, const int b );
 };
 
