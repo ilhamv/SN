@@ -3,7 +3,7 @@
 
 
 //==============================================================================
-// Set CDSA
+// Set Consistent DSA
 //==============================================================================
 
 AcceleratorDSA::AcceleratorDSA
@@ -53,7 +53,7 @@ AcceleratorDSA::AcceleratorDSA
 
 
 //==============================================================================
-// Set IDSA
+// Set Inconsistent DSA
 //==============================================================================
 
 AcceleratorIDSA::AcceleratorIDSA
@@ -121,12 +121,16 @@ AcceleratorIDSA::AcceleratorIDSA
 
 
 //==============================================================================
-// Accelerate
+// No acceleration
 //==============================================================================
 
 void AcceleratorNONE::accelerate(const std::vector<std::shared_ptr<Region>>& mesh,
                                  const std::vector<double>& phi_old, 
                                        std::vector<double>& phi ) { return; }
+
+//==============================================================================
+// Consistent DSA acceleration
+//==============================================================================
 
 void AcceleratorDSA::accelerate(const std::vector<std::shared_ptr<Region>>& mesh,
                                 const std::vector<double>& phi_old, 
@@ -159,6 +163,11 @@ void AcceleratorDSA::accelerate(const std::vector<std::shared_ptr<Region>>& mesh
         phi[j] = phi[j] + 0.5 * ( f[j] + f[j+1] );
     }
 }
+
+//==============================================================================
+// Inconsistent DSA acceleration
+//==============================================================================
+
 void AcceleratorIDSA::accelerate(const std::vector<std::shared_ptr<Region>>& mesh,
                                 const std::vector<double>& phi_old, 
                                       std::vector<double>& phi )

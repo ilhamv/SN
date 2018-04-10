@@ -311,8 +311,7 @@ int main( int argc, char* argv[] )
     dataset.write(&N, type_int);
     dataset = output.createDataSet( "epsilon", type_double, space_scalar );
     dataset.write(&epsilon, type_double);
-    if(TD){
-    }
+    
     // BC
     dataset = output.createDataSet( "bc_left", type_string, space_scalar);
     dataset.write(BC_left->type(), type_string);
@@ -353,13 +352,13 @@ int main( int argc, char* argv[] )
         dataset.write(z.data(), type_double);
         
         // Angular flux solution
-        dims_2D[0] = J;
+        dims_2D[0] = J+1;
         dims_2D[1] = N;
         space_2D = H5::DataSpace(2,dims_2D);
         dataset = output.createDataSet( "angular_flux", type_double, 
                                         space_2D);
-        phi.resize(N*J);
-        for( int j = 0; j < J; j++ ){
+        phi.resize(N*(J+1));
+        for( int j = 0; j < J+1; j++ ){
             for( int n = 0; n < N; n++ ){
                 phi[N*j+n] = psi[j][n];
             }
