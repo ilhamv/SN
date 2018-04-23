@@ -1,0 +1,29 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+
+
+<N> 16 </N>
+<epsilon> 1E-8 </epsilon>
+<Accelerator type="IDSA" beta="0.371162"/>
+
+
+<materials>
+    <material id="1" name="fuel">
+        <total   xs="1.0"/>
+        <scatter xs="1.0"/>
+    </material>
+</materials>
+
+
+<region method="SC">
+    <space> 18.0 6.0 6.0 </space>
+    <mesh> 6 2 2 </mesh>
+    <material> 1 1 1 </material>
+    <source> 0.0 0.1 0.0 </source>
+</region>
+
+
+<bc> 
+    <left  type="isotropic" magnitude="0.5"/>
+    <right type="vacuum"/>
+</bc>
+

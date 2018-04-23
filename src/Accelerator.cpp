@@ -15,7 +15,7 @@ AcceleratorDSA::AcceleratorDSA
     // Set the original tridiagonal matrix
     //==========================================================================
 
-    J = mesh.size();
+    J = mesh.size(); f.resize(J+1);
     A.resize(J);
     B.resize(J+1);
     C.resize(J);
@@ -58,14 +58,14 @@ AcceleratorDSA::AcceleratorDSA
 
 AcceleratorIDSA::AcceleratorIDSA
         ( const std::vector<std::shared_ptr<Region>>& mesh,
-          std::shared_ptr<BC> BC_left,
-          std::shared_ptr<BC> BC_right ): Accelerator("IDSA")
+          std::shared_ptr<BC> BC_left, std::shared_ptr<BC> BC_right, 
+          const double b ): Accelerator("IDSA"), beta(b)
 {
     //==========================================================================
     // Set the original tridiagonal matrix
     //==========================================================================
 
-    J = mesh.size();
+    J = mesh.size(); f.resize(J);
     A.resize(J-1);
     B.resize(J);
     C.resize(J-1);
@@ -137,7 +137,6 @@ void AcceleratorDSA::accelerate(const std::vector<std::shared_ptr<Region>>& mesh
                                       std::vector<double>& phi )
 {
     // RHS
-    std::vector<double> f(J+1);
     f[0] = mesh[0]->SigmaS() * mesh[0]->dz() * ( phi[0] - phi_old[0] );
     for( int j = 1; j < J; j++ ){
         f[j] = 0.5 * ( mesh[j-1]->SigmaS() * mesh[j-1]->dz() 
@@ -173,7 +172,6 @@ void AcceleratorIDSA::accelerate(const std::vector<std::shared_ptr<Region>>& mes
                                       std::vector<double>& phi )
 {
     // RHS
-    std::vector<double> f(J);
     for( int j = 0; j < J; j++ ){
         f[j] = mesh[j]->SigmaS() * ( phi[j] - phi_old[j] ) * mesh[j]->dz();
     }
@@ -191,6 +189,6 @@ void AcceleratorIDSA::accelerate(const std::vector<std::shared_ptr<Region>>& mes
 
     // Update phi
     for( int j = 0; j < J; j++ ){
-        phi[j] = phi[j] + f[j];
+        phi[j] = phi[j] + beta * f[j];
     }
 }

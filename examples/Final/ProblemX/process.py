@@ -25,7 +25,7 @@ def omega_func(tau,SigmaT_h):
     if SigmaT_h == 0: tau = 0
     omega = 0.0
     for n in range(int(N/2),N):
-        num = ( np.cos(tau)**2 - 3.0*mu[n]**2 ) * w[n]
+        num = ( np.cos(tau)**2 * ( 1.0 - 3.0*mu[n]**2 ) ) * w[n]
         if SigmaT_h == 0:
             denom = 1.0
         else:

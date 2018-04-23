@@ -23,7 +23,8 @@ void source_iteration( int& N_iter,
                        std::vector<std::vector<double>>& psi,
                        std::vector<double>& rho,
                        const std::string space_method,
-                       const std::string accelerator_type )
+                       const std::string accelerator_type,
+                       const double beta )
 {
     // phi: cell-average scalar flux
     // psi: cell-edge angular flux
@@ -57,7 +58,7 @@ void source_iteration( int& N_iter,
     } else if ( accelerator_type == "IDSA" ){
         std::cout<< "IDSA\n";
         accelerator = std::make_shared<AcceleratorIDSA>( mesh, BC_left, 
-                                                         BC_right );
+                                                         BC_right, beta );
     } else{
         std::cout<< "OFF\n";
         accelerator = std::make_shared<AcceleratorNONE>();
@@ -146,15 +147,16 @@ void source_iteration( int& N_iter,
         for( int j = 0; j < J; j++ ){
             // Now phi_old holds the absolute difference between iterates
             phi_old[j] = std::abs( phi[j] - phi_old[j] );
-            double val = phi_old[j] / 
-                  ( std::abs(phi[j]) + std::numeric_limits<double>::epsilon() );
+            double val = phi_old[j] / ( std::abs(phi[j]) + epsilon*epsilon );
+// (commented out)( std::abs(phi[j]) + std::numeric_limits<double>::epsilon() );
             if( val > error ){ error = val; }
         }
         rho_num = norm_2(phi_old);
         rho.push_back( rho_num/rho_denom );
         rho_denom = rho_num;
 
-    } while ( error > ( 1.0 - rho.back() ) * epsilon );
+    } while ( error > epsilon );
+// (commented out)} while ( error > ( 1.0 - rho.back() ) * epsilon );
         
     // Some outputs
     N_iter = rho.size();

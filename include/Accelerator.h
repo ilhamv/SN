@@ -77,10 +77,11 @@ class AcceleratorIDSA : public Accelerator
         std::vector<double> B;
         std::vector<double> C;
         std::vector<double> f;
+        const double beta;
     public:
         AcceleratorIDSA( const std::vector<std::shared_ptr<Region>>& mesh, 
                          std::shared_ptr<BC> BC_left,
-                         std::shared_ptr<BC> BC_right );
+                         std::shared_ptr<BC> BC_right, const double b );
         ~AcceleratorIDSA() {};
 
         void accelerate( const std::vector<std::shared_ptr<Region>>& mesh,

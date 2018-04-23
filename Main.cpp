@@ -40,8 +40,12 @@ int main( int argc, char* argv[] )
     const double epsilon = std::stod( input_file.child_value("epsilon") );
     
     // Accelerator
-    const std::string accelerator_type = input_file.child("Accelerator").
-                                                    attribute("type").value();
+    const std::string accelerator_type = input_file.child("Accelerator")
+                                                   .attribute("type").value();
+    double beta = 1.0;
+    if( input_file.child("Accelerator").attribute("beta") ){
+        beta = input_file.child("Accelerator").attribute("beta").as_double();
+    }
 
 
     //==========================================================================
@@ -262,7 +266,7 @@ int main( int argc, char* argv[] )
     if( !TD ){
         source_iteration( N_iter, epsilon, mesh, region, mu, w, BC_left, 
                           BC_right, phi, psi, rho, space_method, 
-                          accelerator_type);
+                          accelerator_type, beta);
     }
     
 

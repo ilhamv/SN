@@ -18,7 +18,8 @@ void source_iteration( int& N_iter,
                        std::vector<std::vector<double>>& psi,
                        std::vector<double>& rho,
                        const std::string space_method,
-                       const std::string accelerator_type );
+                       const std::string accelerator_type,
+                       const double beta );
 
 void source_iteration_TD_implicit( 
         const double epsilon,

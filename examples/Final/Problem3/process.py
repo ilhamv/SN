@@ -4,35 +4,31 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 #==============================================================================
-# Problem 1a
+# Problem 3a
 #==============================================================================
 
 # Quadrature sets
-N = 16
+N = 16    
 mu, w = np.polynomial.legendre.leggauss(N)
 
 # Function of omega (h=0)
 def omega_func_zero(lamb,SigmaT_h):
     omega = 0.0
     for n in range(int(N/2),N):
-        num = ( 1.0 - 3.0 * mu[n]**2 ) * w[n]
-        denom = 1.0 + lamb**2 * mu[n]**2
+        num = w[n]
+        denom = ( lamb * mu[n] )**-2 + 1.0
         omega = omega + num / denom
-    return omega
+    return 1.0 - ( 1.0 + 3.0 / lamb**2 ) * omega
 
 # Function of omega
 def omega_func(tau,SigmaT_h):
-    if SigmaT_h == 0: tau = 0
     omega = 0.0
     for n in range(int(N/2),N):
-        num = ( np.cos(tau)**2 - 3.0*mu[n]**2 ) * w[n]
-        if SigmaT_h == 0:
-            denom = 1.0
-        else:
-            denom = ( np.cos(tau)**2 
-                      + ( 2.0 / SigmaT_h * np.sin(tau) )**2 * mu[n]**2 )
+        coth = np.tanh( SigmaT_h/2/mu[n] )**-1
+        num =  2.0*mu[n]/SigmaT_h * coth * w[n]
+        denom = np.tan(tau)**-2 + coth**2
         omega = omega + num / denom
-    return omega
+    return 1.0 - ( 1.0 + 3.0 * ( SigmaT_h/2.0/np.sin(tau) )**2 ) * omega
 
 # List of lambda (h=0)
 N_lamb = 100
@@ -76,7 +72,7 @@ plt.plot( SigmaT_h, np.ones(I), label=r"$\rho$ = c" )
 
 
 #==============================================================================
-# Problem 1b
+# Problem 3b
 #==============================================================================
 
 SigmaT_h = [ 0.2, 0.3, 0.5, 0.6, 1.0, 1.2, 1.5, 2.0, 3.0 ]

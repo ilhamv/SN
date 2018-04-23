@@ -3,7 +3,7 @@
 
 <N> 16 </N>
 <epsilon> 1E-8 </epsilon>
-<Accelerator type="IDSA" />
+<Accelerator type="DSA" />
 
 
 <materials>
