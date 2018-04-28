@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 # Problem 4 Theoretical
 #==============================================================================
 
+c = 1.0
+
 # Quadrature sets
 N = 16    
 mu, w = np.polynomial.legendre.leggauss(N)
@@ -18,8 +20,8 @@ def beta_f(SigmaT_h):
     for n in range(int(N/2),N):
         tanh = tanh + mu[n] * np.tanh(SigmaT_h/2/mu[n]) * w[n]
         coth = coth + mu[n] * np.tanh(SigmaT_h/2/mu[n])**-1 * w[n]
-#    return ( 2.0 - 2./SigmaT_h*tanh ) / (3.0*SigmaT_h/2)/( 2.0/3/SigmaT_h + tanh )
-    return ( 2.0 - 2./SigmaT_h*tanh ) / (3.0*SigmaT_h/2)/( coth + tanh )
+    return ( 2.0 - 2./SigmaT_h*tanh ) / ( 1 - ((c-1-c*2/SigmaT_h*tanh)/(1-c+1./3*(2./SigmaT_h)**2)) )
+#    return ( 2.0 - 2./SigmaT_h*tanh ) / (3.0*SigmaT_h/2)/( coth + tanh )
 
 # Cases run
 I = 16
@@ -38,7 +40,7 @@ plt.plot(SigmaT_h,beta,"*-")
 plt.ylabel(r'$\beta$')
 plt.xlabel(r'$\Sigma_th$')
 plt.show()
-#plt.plot(SigmaT_h,beta,"*-",color='0.1',alpha=0.2,label=r'$\beta$')
+SigmaTh_beta = SigmaT_h
 
 # Function of omega (h=0)
 def omega_func_zero(lamb,SigmaT_h):
@@ -47,7 +49,7 @@ def omega_func_zero(lamb,SigmaT_h):
         num = w[n]
         denom = ( lamb * mu[n] )**-2 + 1.0
         omega = omega + num / denom
-    return 1.0 - ( 3.0 / lamb**2 + 1.0 ) * omega
+    return c / (1-c+1./3*lamb**2) * ( 1./3*lamb**2 - ( 1./3 * lamb**2 + 1.0 ) * omega )
 
 # Function of omega
 def omega_func(tau,SigmaT_h):
@@ -57,8 +59,7 @@ def omega_func(tau,SigmaT_h):
         num =  2.0*mu[n]/SigmaT_h * coth * w[n]
         denom = np.tan(tau)**-2 + coth**2
         omega = omega + num / denom
-    return 1.0 - ( 1.0 + 3.0 * ( SigmaT_h/2.0/np.sin(tau) )**2
-                         * beta_f(SigmaT_h) ) * omega
+    return c / ( 1-c+1./3*(2./SigmaT_h*np.sin(tau))**2 ) * ((1+(beta_f(SigmaT_h)-1)*c+1./3*(2./SigmaT_h*np.sin(tau))**2)*(1-omega)-beta_f(SigmaT_h))
 
 # Function of omega (h=0)
 def omega_func_zero_ori(lamb,SigmaT_h):
@@ -67,7 +68,7 @@ def omega_func_zero_ori(lamb,SigmaT_h):
         num = w[n]
         denom = ( lamb * mu[n] )**-2 + 1.0
         omega = omega + num / denom
-    return 1.0 - ( 1.0 + 3.0 / lamb**2 ) * omega
+    return c * ( 1.0 - ( 1.0 + 3.0 / lamb**2 ) * omega )
 
 # Function of omega
 def omega_func_ori(tau,SigmaT_h):
@@ -77,11 +78,11 @@ def omega_func_ori(tau,SigmaT_h):
         num =  2.0*mu[n]/SigmaT_h * coth * w[n]
         denom = np.tan(tau)**-2 + coth**2
         omega = omega + num / denom
-    return 1.0 - ( 1.0 + 3.0 * ( SigmaT_h/2.0/np.sin(tau) )**2 ) * omega
+    return c * ( 1.0 - ( 1.0 + 3.0 * ( SigmaT_h/2.0/np.sin(tau) )**2 ) * omega )
 
 # List of lambda (h=0)
-N_lamb = 100
-lamb_list = np.linspace(0.0,10.0,N_lamb)
+N_lamb = 1000
+lamb_list = np.linspace(0.0,100.0,N_lamb)
 
 # List of tau
 N_tau = 100
@@ -105,8 +106,8 @@ for lamb in lamb_list:
         rho[0] = abs(omega)
 # Printout
 print(SigmaT_h[0],rho[0])
-plt.plot(tau_list,om,label="Smoothed")
-plt.plot(tau_list,om_ori,'--',label="Original")
+plt.plot(lamb_list,om,label="Relaxed")
+plt.plot(lamb_list,om_ori,'--',label="Original")
 plt.title(r'$\Sigma_th$ = %.3f'%SigmaT_h[0])
 plt.xlabel(r'$\lambda$')
 plt.ylabel(r'$|\omega|$')
@@ -130,7 +131,8 @@ for i in range(1,I):
             rho[i] = abs(omega)
     # Printout
     print(SigmaT_h[i],rho[i])
-    plt.plot(tau_list,om,label="Smoothed")
+    
+    plt.plot(tau_list,om,label="Relaxed")
     plt.plot(tau_list,om_ori,'--',label="Original")
     plt.title(r'$\Sigma_th$ = %.3f'%SigmaT_h[i])
     plt.xlabel(r'$\tau$')
@@ -138,6 +140,7 @@ for i in range(1,I):
     plt.grid()
     plt.legend()
     plt.show()
+    
 
 # Plot
 plt.plot( SigmaT_h, rho, '*-', label="Theory - Relaxed" )
@@ -154,6 +157,12 @@ rho = np.zeros_like(SigmaT_h)
 mesh = np.zeros(2)
 
 args = ["./../../../SN.exe","."]
+
+with open('input.xml', 'r') as file:
+    data = file.readlines()
+data[11] = "        <scatter xs=\"%f\"/>\n"%c
+with open('input.xml', 'w') as file:
+    file.writelines( data )
 
 for i in range(len(SigmaT_h)):
     SigmaT_h[i] = 3.0 / (I-i)
@@ -237,6 +246,8 @@ for i in range(1,I):
             rho[i] = abs(omega)
 
 # Plot
-plt.plot( SigmaT_h, rho, '*-', label="Theory" )
-plt.plot( SigmaT_h, np.ones(I), label=r"$\rho$ = c" )
+plt.plot( SigmaT_h, rho, '*-', label="Theory - Original" )
+plt.plot( SigmaT_h, np.ones(I)*c, label=r"$\rho$ = c" )
+plt.plot(SigmaTh_beta,beta,"*-",label=r'$\beta$')
+plt.legend(loc=0)
 plt.show()

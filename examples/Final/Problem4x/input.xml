@@ -9,7 +9,7 @@
 <materials>
     <material id="1" name="fuel">
         <total   xs="1.0"/>
-        <scatter xs="1.0"/>
+        <scatter xs="1.000000"/>
     </material>
 </materials>
 

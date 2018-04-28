@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 # Problem 5a
 #==============================================================================
 
+c = 1.0
+
 # Quadrature sets
 N = 16
 mu, w = np.polynomial.legendre.leggauss(N)
@@ -15,31 +17,31 @@ mu, w = np.polynomial.legendre.leggauss(N)
 def omega_func_zero(lamb,SigmaT_h):
     omega = 0.0
     for n in range(int(N/2),N):
-        num = w[n]
-        denom = ( lamb * mu[n] )**2 + 1.0
-        omega = omega + num / denom
-    return ( 1.0 + 3.0 / lamb**2 ) * omega - 3.0 / lamb**2
+        num = 1.0 - 3.0*mu[n]**2
+        denom = 1.0 + mu[n]**2*lamb**2
+        omega = omega + num / denom * w[n]
+    return c * ( 1.0/3.0 * lamb**2 / ( 1.0-c+1.0/3.0*lamb**2 ) ) * omega
 
 # Function of omega
 def omega_func(tau,SigmaT_h):
+    Lamb = 2.0/SigmaT_h * np.tan(tau)
     omega = 0.0
     for n in range(int(N/2),N):
-        num =  w[n]
-        denom = 1.0 + ( 2*mu[n]/SigmaT_h*np.tan(tau))**2
-        omega = omega + num / denom
-    xi = 3 * (SigmaT_h/2/np.tan(tau))**2
-    return ( 1 + xi ) * omega - xi
+        num = 1.0 - 3.0*mu[n]**2 + 3.0*(1.0-c) * (SigmaT_h/2)**2
+        denom = 1.0 + mu[n]**2 * Lamb**2
+        omega = omega + num / denom * w[n]
+    return c * ( 1.0/3.0 * (np.sin(tau)*2/SigmaT_h)**2 / ( 1.0-c+1.0/3.0*(np.sin(tau)*2/SigmaT_h)**2 ) ) * omega
 
-# Function of omega (h=0)
+# Function of omega (h=0) [ORI]
 def omega_func_zero_ori(lamb,SigmaT_h):
     omega = 0.0
     for n in range(int(N/2),N):
         num = ( 1.0 - 3.0 * mu[n]**2 ) * w[n]
         denom = 1.0 + lamb**2 * mu[n]**2
         omega = omega + num / denom
-    return omega
+    return c*omega
 
-# Function of omega
+# Function of omega [ORI]
 def omega_func_ori(tau,SigmaT_h):
     if SigmaT_h == 0: tau = 0
     omega = 0.0
@@ -51,7 +53,7 @@ def omega_func_ori(tau,SigmaT_h):
             denom = ( np.cos(tau)**2 
                       + ( 2.0 / SigmaT_h * np.sin(tau) )**2 * mu[n]**2 )
         omega = omega + num / denom
-    return omega
+    return c*omega
 
 # List of lambda (h=0)
 N_lamb = 100
@@ -102,7 +104,6 @@ for i in range(1,I):
         om_ori.append(abs(omega_ori))
         if abs(omega) > rho[i]:
             rho[i] = abs(omega)
-'''
     # Printout
     print(SigmaT_h[i],rho[i])
     plt.plot(tau_list,om,label="Smoothed")
@@ -115,7 +116,6 @@ for i in range(1,I):
     plt.grid()
     plt.legend()
     plt.show()
-'''
 # Plot
 plt.plot( SigmaT_h, rho, '*-', label="Theory - Smoothed" )
 
@@ -132,6 +132,12 @@ rho = np.zeros_like(SigmaT_h)
 mesh = np.zeros(2)
 
 args = ["./../../../SN.exe","."]
+
+with open('input.xml', 'r') as file:
+    data = file.readlines()
+data[11] = "        <scatter xs=\"%f\"/>\n"%c
+with open('input.xml', 'w') as file:
+    file.writelines( data )
 
 for i in range(len(SigmaT_h)):
     SigmaT_h[i] = 3.0 / (I-i)
@@ -172,7 +178,7 @@ def omega_func_zero(lamb,SigmaT_h):
         num = w[n]
         denom = ( lamb * mu[n] )**-2 + 1.0
         omega = omega + num / denom
-    return 1.0 - ( 1.0 + 3.0 / lamb**2 ) * omega
+    return c * ( 1.0 - ( 1.0 + 3.0 / lamb**2 ) * omega )
 
 # Function of omega
 def omega_func(tau,SigmaT_h):
@@ -182,7 +188,7 @@ def omega_func(tau,SigmaT_h):
         num =  2.0*mu[n]/SigmaT_h * coth * w[n]
         denom = np.tan(tau)**-2 + coth**2
         omega = omega + num / denom
-    return 1.0 - ( 1.0 + 3.0 * ( SigmaT_h/2.0/np.sin(tau) )**2 ) * omega
+    return c * ( 1.0 - ( 1.0 + 3.0 * ( SigmaT_h/2.0/np.sin(tau) )**2 ) * omega )
 
 # List of lambda (h=0)
 N_lamb = 100
@@ -216,7 +222,7 @@ for i in range(1,I):
 
 # Plot
 plt.plot( SigmaT_h, rho, '*-', label="Theory - Original" )
-plt.plot( SigmaT_h, np.ones(I), label=r"$\rho$ = c" )
+plt.plot( SigmaT_h, np.ones(I)*c, label=r"$\rho$ = c" )
 
 
 plt.legend()
