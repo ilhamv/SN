@@ -16,7 +16,7 @@
 
 <region method="DD">
     <space> 18.0 6.0 6.0 </space>
-    <mesh> 90 30 30 </mesh>
+    <mesh> 6 2 2 </mesh>
     <material> 1 1 1 </material>
     <source> 0.0 0.1 0.0 </source>
 </region>

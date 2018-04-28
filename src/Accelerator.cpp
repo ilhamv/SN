@@ -189,6 +189,39 @@ void AcceleratorIDSA::accelerate(const std::vector<std::shared_ptr<Region>>& mes
 
     // Update phi
     for( int j = 0; j < J; j++ ){
-        phi[j] = phi[j] + beta * f[j];
+        phi[j] += beta * f[j];
     }
+}
+
+//==============================================================================
+// Smoothed Inconsistent DSA acceleration
+//==============================================================================
+
+void AcceleratorIDSASmooth::accelerate(
+                            const std::vector<std::shared_ptr<Region>>& mesh,
+                            const std::vector<double>& phi_old, 
+                            std::vector<double>& phi )
+{
+    // RHS
+    for( int j = 0; j < J; j++ ){
+        f[j] = mesh[j]->SigmaS() * ( phi[j] - phi_old[j] ) * mesh[j]->dz();
+    }
+
+    // Forward substitution
+    for( int j = 1; j < J; j++ ){
+        f[j] -= A[j-1] * f[j-1];
+    }
+    
+    // Backward substitution
+    f[J-1] /= B[J-1];
+    for( int j = J-2; j >= 0; j-- ){
+        f[j] = ( f[j] - C[j] * f[j+1] ) / B[j];
+    }
+
+    // Update phi
+    phi[0] += 0.5 * ( f[0] + f[1] );
+    for( int j = 1; j < J-1; j++ ){
+        phi[j] += 0.25 * ( f[j-1] + 2.0*f[j] + f[j+1] );
+    }
+    phi[J-1] += 0.5 * ( f[J-2] + f[J-1] );
 }

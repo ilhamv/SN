@@ -59,6 +59,10 @@ void source_iteration( int& N_iter,
         std::cout<< "IDSA\n";
         accelerator = std::make_shared<AcceleratorIDSA>( mesh, BC_left, 
                                                          BC_right, beta );
+    } else if ( accelerator_type == "SIDSA" ){
+        std::cout<< "SIDSA\n";
+        accelerator = std::make_shared<AcceleratorIDSASmooth>( mesh, BC_left, 
+                                                         BC_right, beta );
     } else{
         std::cout<< "OFF\n";
         accelerator = std::make_shared<AcceleratorNONE>();

@@ -36,7 +36,7 @@ def omega_func(tau,SigmaT_h):
 
 # List of lambda (h=0)
 N_lamb = 100
-lamb_list = np.linspace(0.0,np.pi/2.0,N_lamb)
+lamb_list = np.linspace(0.0,10.0,N_lamb)
 
 # List of tau
 N_tau = 100
@@ -49,43 +49,62 @@ SigmaT_h = np.zeros(I)
 
 # For h=0
 SigmaT_h[0] = 0.0
+om = []
 for lamb in lamb_list:
     omega = omega_func_zero(lamb,SigmaT_h[0])
+    om.append(abs(omega))
     if abs(omega) > rho[0]:
         rho[0] = abs(omega)
-
 # Printout
 print(SigmaT_h[0],rho[0])
+plt.plot(tau_list,om)
+plt.title(r'$\Sigma_th$ = %.3f'%SigmaT_h[0])
+plt.xlabel(r'$\lambda$')
+plt.ylabel(r'$|\omega|$')
+plt.grid()
+plt.show()
 
 # Loop over cases
 for i in range(1,I):
-    SigmaT_h[i] = 0.2 * i
+    SigmaT_h[i] = 3.0 / (I-i)
+    om = []
 
     # Loop over tau_list and find the maximum rho
     for tau in tau_list:
         omega = omega_func(tau,SigmaT_h[i])
+        om.append(abs(omega))
         if abs(omega) > rho[i]:
             rho[i] = abs(omega)
 
     # Printout
     print(SigmaT_h[i],rho[i])
+    if i == 1 or i == 12 or i == 15:
+        plt.plot(tau_list,om)
+        plt.title(r'$\Sigma_th$ = %.3f'%SigmaT_h[i])
+        plt.xlabel(r'$\tau$')
+        plt.ylabel(r'$|\omega|$')
+        plt.grid()
+        plt.show()
 
 # Plot
 plt.plot( SigmaT_h, rho, '*-', label="Theory" )
-plt.plot( SigmaT_h, np.ones(I), label=r"$\rho$ = c" )
 
 
 #==============================================================================
 # Problem 1b
 #==============================================================================
 
-SigmaT_h = [ 0.2, 0.3, 0.5, 0.6, 1.0, 1.2, 1.5, 2.0, 3.0 ]
-mesh = np.zeros(2)
+# Cases run
+I = 15
+rho = np.zeros(I)
+SigmaT_h = np.zeros(I)
 rho = np.zeros_like(SigmaT_h)
+mesh = np.zeros(2)
 
 args = ["./../../../SN.exe","."]
 
 for i in range(len(SigmaT_h)):
+    SigmaT_h[i] = 3.0 / (I-i)
     mesh[0] = 18.0 / SigmaT_h[i]
     mesh[1] = 6.0 / SigmaT_h[i]
     

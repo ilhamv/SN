@@ -4,80 +4,54 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 #==============================================================================
-# Problem 4 Theoretical
+# Problem 5a
 #==============================================================================
 
 # Quadrature sets
-N = 16    
+N = 16
 mu, w = np.polynomial.legendre.leggauss(N)
-
-# The beta function
-def beta_f(SigmaT_h):
-    tanh = 0
-    coth = 0
-    for n in range(int(N/2),N):
-        tanh = tanh + mu[n] * np.tanh(SigmaT_h/2/mu[n]) * w[n]
-        coth = coth + mu[n] * np.tanh(SigmaT_h/2/mu[n])**-1 * w[n]
-#    return ( 2.0 - 2./SigmaT_h*tanh ) / (3.0*SigmaT_h/2)/( 2.0/3/SigmaT_h + tanh )
-    return ( 2.0 - 2./SigmaT_h*tanh ) / (3.0*SigmaT_h/2)/( coth + tanh )
-
-# Cases run
-I = 16
-beta = np.zeros(I)
-rho = np.zeros(I)
-SigmaT_h = np.zeros(I)
-
-# Beta plot
-SigmaT_h[0] = 0.0
-beta[0] = 1.0
-
-for i in range(1,I):
-    SigmaT_h[i] = 3.0 / (I-i)
-    beta[i] = beta_f(SigmaT_h[i])
-plt.plot(SigmaT_h,beta,"*-")
-plt.ylabel(r'$\beta$')
-plt.xlabel(r'$\Sigma_th$')
-plt.show()
-#plt.plot(SigmaT_h,beta,"*-",color='0.1',alpha=0.2,label=r'$\beta$')
 
 # Function of omega (h=0)
 def omega_func_zero(lamb,SigmaT_h):
     omega = 0.0
     for n in range(int(N/2),N):
         num = w[n]
-        denom = ( lamb * mu[n] )**-2 + 1.0
+        denom = ( lamb * mu[n] )**2 + 1.0
         omega = omega + num / denom
-    return 1.0 - ( 3.0 / lamb**2 + 1.0 ) * omega
+    return ( 1.0 + 3.0 / lamb**2 ) * omega - 3.0 / lamb**2
 
 # Function of omega
 def omega_func(tau,SigmaT_h):
     omega = 0.0
     for n in range(int(N/2),N):
-        coth = np.tanh( SigmaT_h/2/mu[n] )**-1
-        num =  2.0*mu[n]/SigmaT_h * coth * w[n]
-        denom = np.tan(tau)**-2 + coth**2
+        num =  w[n]
+        denom = 1.0 + ( 2*mu[n]/SigmaT_h*np.tan(tau))**2
         omega = omega + num / denom
-    return 1.0 - ( 1.0 + 3.0 * ( SigmaT_h/2.0/np.sin(tau) )**2
-                         * beta_f(SigmaT_h) ) * omega
+    xi = 3 * (SigmaT_h/2/np.tan(tau))**2
+    return ( 1 + xi ) * omega - xi
 
 # Function of omega (h=0)
 def omega_func_zero_ori(lamb,SigmaT_h):
     omega = 0.0
     for n in range(int(N/2),N):
-        num = w[n]
-        denom = ( lamb * mu[n] )**-2 + 1.0
+        num = ( 1.0 - 3.0 * mu[n]**2 ) * w[n]
+        denom = 1.0 + lamb**2 * mu[n]**2
         omega = omega + num / denom
-    return 1.0 - ( 1.0 + 3.0 / lamb**2 ) * omega
+    return omega
 
 # Function of omega
 def omega_func_ori(tau,SigmaT_h):
+    if SigmaT_h == 0: tau = 0
     omega = 0.0
     for n in range(int(N/2),N):
-        coth = np.tanh( SigmaT_h/2/mu[n] )**-1
-        num =  2.0*mu[n]/SigmaT_h * coth * w[n]
-        denom = np.tan(tau)**-2 + coth**2
+        num = ( np.cos(tau)**2 - 3.0*mu[n]**2 ) * w[n]
+        if SigmaT_h == 0:
+            denom = 1.0
+        else:
+            denom = ( np.cos(tau)**2 
+                      + ( 2.0 / SigmaT_h * np.sin(tau) )**2 * mu[n]**2 )
         omega = omega + num / denom
-    return 1.0 - ( 1.0 + 3.0 * ( SigmaT_h/2.0/np.sin(tau) )**2 ) * omega
+    return omega
 
 # List of lambda (h=0)
 N_lamb = 100
@@ -94,8 +68,8 @@ SigmaT_h = np.zeros(I)
 
 # For h=0
 SigmaT_h[0] = 0.0
-om=[]
-om_ori=[]
+om = []
+om_ori = []
 for lamb in lamb_list:
     omega = omega_func_zero(lamb,SigmaT_h[0])
     omega_ori = omega_func_zero_ori(lamb,SigmaT_h[0])
@@ -128,6 +102,7 @@ for i in range(1,I):
         om_ori.append(abs(omega_ori))
         if abs(omega) > rho[i]:
             rho[i] = abs(omega)
+'''
     # Printout
     print(SigmaT_h[i],rho[i])
     plt.plot(tau_list,om,label="Smoothed")
@@ -135,15 +110,18 @@ for i in range(1,I):
     plt.title(r'$\Sigma_th$ = %.3f'%SigmaT_h[i])
     plt.xlabel(r'$\tau$')
     plt.ylabel(r'$|\omega|$')
+    if i >= 12:
+        plt.ylim(-0.011231616522719819, 0.23586394697711616)
     plt.grid()
     plt.legend()
     plt.show()
-
+'''
 # Plot
-plt.plot( SigmaT_h, rho, '*-', label="Theory - Relaxed" )
+plt.plot( SigmaT_h, rho, '*-', label="Theory - Smoothed" )
+
 
 #==============================================================================
-# Problem 4 Experimental
+# Problem 5b
 #==============================================================================
 
 # Cases run
@@ -159,12 +137,10 @@ for i in range(len(SigmaT_h)):
     SigmaT_h[i] = 3.0 / (I-i)
     mesh[0] = 18.0 / SigmaT_h[i]
     mesh[1] = 6.0 / SigmaT_h[i]
-    beta_code = beta_f(SigmaT_h[i])
     
     with open('input.xml', 'r') as file:
         data = file.readlines()
-    data[5] = "<Accelerator type=\"IDSA\" beta=\"%f\"/>\n"%beta_code
-    data[18] = "    <mesh> %i %i %i </mesh>\n"%(mesh[0],mesh[1],mesh[1])
+    data[18] = "    <mesh> %i %i %i </mesh>\n"%(mesh[0],mesh[1],mesh[1]);
     with open('input.xml', 'w') as file:
         file.writelines( data )
     call(args)
@@ -173,9 +149,11 @@ for i in range(len(SigmaT_h)):
     rho[i] = np.array(f['spectral_radius'])[-1]
     f.close()
 
-plt.plot(SigmaT_h,rho,"o",label="Code - Relaxed")
+
+print(SigmaT_h,rho)
+plt.plot(SigmaT_h,rho,"o",label="Code - Smoothed")
 plt.xlabel(r'$\Sigma_th$')
-plt.ylabel(r'$\rho$ or $\beta$')
+plt.ylabel(r'$\rho$')
 plt.grid()
 
 
@@ -237,6 +215,9 @@ for i in range(1,I):
             rho[i] = abs(omega)
 
 # Plot
-plt.plot( SigmaT_h, rho, '*-', label="Theory" )
+plt.plot( SigmaT_h, rho, '*-', label="Theory - Original" )
 plt.plot( SigmaT_h, np.ones(I), label=r"$\rho$ = c" )
+
+
+plt.legend()
 plt.show()

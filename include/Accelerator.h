@@ -71,7 +71,7 @@ class AcceleratorDSA : public Accelerator
 
 class AcceleratorIDSA : public Accelerator
 {
-    private:
+    protected:
         int J;
         std::vector<double> A;
         std::vector<double> B;
@@ -83,6 +83,23 @@ class AcceleratorIDSA : public Accelerator
                          std::shared_ptr<BC> BC_left,
                          std::shared_ptr<BC> BC_right, const double b );
         ~AcceleratorIDSA() {};
+
+        virtual void accelerate( const std::vector<std::shared_ptr<Region>>& mesh,
+                                 const std::vector<double>& phi_old, 
+                                 std::vector<double>& phi );
+};
+//=============================================================================
+// Smoothed IDSA
+//=============================================================================
+
+class AcceleratorIDSASmooth : public AcceleratorIDSA
+{
+    public:
+        AcceleratorIDSASmooth( const std::vector<std::shared_ptr<Region>>& mesh, 
+                               std::shared_ptr<BC> BC_left,
+                               std::shared_ptr<BC> BC_right, const double b ):
+                               AcceleratorIDSA( mesh,BC_left,BC_right,b ) {};
+        ~AcceleratorIDSASmooth() {};
 
         void accelerate( const std::vector<std::shared_ptr<Region>>& mesh,
                          const std::vector<double>& phi_old, 
