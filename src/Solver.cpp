@@ -8,6 +8,240 @@
 
 
 //==============================================================================
+// Eigenvalue
+//==============================================================================
+
+void eigenvalue_solver( int& N_iter,
+                        const double epsilon,
+                        const std::vector<std::shared_ptr<Region>>& mesh,
+                        const std::vector<std::shared_ptr<Region>>& region,
+                        const std::vector<double>& mu, 
+                        const std::vector<double>& w,
+                        const std::shared_ptr<BC>& BC_left,
+                        const std::shared_ptr<BC>& BC_right,
+                        std::vector<double>& phi,
+                        std::vector<std::vector<double>>& psi,
+                        std::vector<double>& rho,
+                        const std::string space_method,
+                        const std::string accelerator_type,
+                        const double beta,
+                        std::vector<double>& lambda_vec,
+                        std::vector<double>& zeta_vec,
+                        const double ws_scale,
+                        const double ws_subtract,
+                        const double ws_min,
+                        const std::vector<std::shared_ptr<Material>>& material )
+{
+    // phi: cell-average scalar flux
+    // psi: cell-edge angular flux
+    // rho: spectral radius
+    // lambda_vec: eigenvalue
+    // zeta_vec, ws's: Wieldant shift parameters
+
+    // Report mode
+    std::cout<< "Mode: Steady-state - Eigenvalue\n";
+
+    // Space method, and set region's alpha
+    std::cout<<"Space discretization: "<<space_method<<"\n";
+    for( int i = 0; i < region.size(); i++ ){
+        region[i]->set_alpha( mu, space_method );
+    }
+
+    // Tools
+    const int N = mu.size();
+    const int J = mesh.size();
+    double S; // Isotropic source
+    std::vector<double> phi_old(J);
+    double error, error_lambda; // Maximum relative error
+    double rho_num, rho_denom = 1.0;
+    
+    // Report accelerator
+    std::shared_ptr<Accelerator> accelerator;
+    std::cout<< "Accelerator: ";
+    if( accelerator_type == "DSA" ){ std::cout<< "DSA\n"; } 
+    else if ( accelerator_type == "IDSA" ){ std::cout<< "IDSA\n"; } 
+    else if ( accelerator_type == "SIDSA" ){ std::cout<< "SIDSA\n"; } 
+    else{ std::cout<< "OFF\n"; }
+
+    // Initialize and first guesses
+    phi.resize( J, 1.5 ); for( int j = 0.5*J; j < J; j++ ){ phi[j] = 0.5; }
+    psi.resize( J+1, std::vector<double>(N) );
+    double lambda = 1.0;
+    lambda_vec.push_back(lambda);
+    double zeta = wielandt_shift( ws_scale, ws_subtract, ws_min, 
+                                      lambda , lambda );
+    zeta_vec.push_back(zeta);
+
+    //=========================================================================
+    // Source iteration
+    //=========================================================================
+
+    do{
+        // Set tilded material
+        for( auto m : material ){ m->set_tilde( zeta ); }
+
+        // Set accelerator
+        if( accelerator_type == "DSA" )
+        { 
+            accelerator = std::make_shared<AcceleratorDSA>( mesh, BC_left, 
+                                                            BC_right );
+        } else if ( accelerator_type == "IDSA" ){
+            accelerator = std::make_shared<AcceleratorIDSA>( mesh, BC_left, 
+                                                             BC_right, beta );
+        } else if ( accelerator_type == "SIDSA" ){
+            accelerator = std::make_shared<AcceleratorIDSASmooth>( mesh, BC_left, 
+                                                             BC_right, beta );
+        } else{
+            accelerator = std::make_shared<AcceleratorNONE>();
+        }
+   
+        //======================================================================
+        // Forward sweep
+        //======================================================================
+
+        // Set BC
+        BC_left->set_boundary( psi[0], 0.5*N, N );
+        
+        // Space sweep
+        for( int j = 0; j < J; j++ ){
+
+            // Set isotropic source
+            S = 0.5 * ( mesh[j]->SigmaS() 
+                        + ( lambda - zeta ) * mesh[j]->nuSigmaF() ) * phi[j];
+
+            // Direction sweep
+            for( int n = 0.5*N; n < N; n++ ){
+                psi[j+1][n] = ( ( mu[n] - ( 1.0 - mesh[j]->alpha(n) ) * 0.5 
+                                          * mesh[j]->tau() ) * psi[j][n]
+                                + S * mesh[j]->dz() )
+                              / ( mu[n] + ( 1.0 + mesh[j]->alpha(n) ) * 0.5 
+                                          * mesh[j]->tau() );
+            }
+        }
+        
+        //======================================================================
+        // Backward sweep
+        //======================================================================
+
+        // Set BC
+        BC_right->set_boundary( psi[J], 0, 0.5*N );
+
+        // Space sweep
+        for( int j = J-1; j >= 0; j-- ){
+
+            // Set isotropic source
+            S = 0.5 * ( mesh[j]->SigmaS() 
+                        + ( lambda - zeta ) * mesh[j]->nuSigmaF() ) * phi[j];
+
+            // Direction sweep
+            for( int n = 0; n < 0.5*N; n++ ){
+                psi[j][n]   = ( ( -mu[n] - ( 1.0 + mesh[j]->alpha(n) ) * 0.5 
+                                           * mesh[j]->tau() ) * psi[j+1][n]
+                                + S * mesh[j]->dz() )
+                              / ( -mu[n] + ( 1.0 - mesh[j]->alpha(n) ) * 0.5 
+                                         * mesh[j]->tau() );
+            }
+        }
+        
+        //======================================================================
+        // Update flux
+        //======================================================================
+        
+        // Store old phi
+        phi_old = phi; 
+
+        // Update phi
+        for( int j = 0; j < J; j++ ){
+            phi[j] = 0.0;
+            for( int n = 0; n < N; n++ ){
+                phi[j] += ( ( 1.0 - mesh[j]->alpha(n) ) * psi[j][n] 
+                            +( 1.0 + mesh[j]->alpha(n) ) * psi[j+1][n] ) * w[n];
+            }
+            phi[j] *= 0.5;
+        }
+        
+        // Acceleration
+        accelerator->accelerate( mesh, phi_old, phi );
+
+        // Normalize
+        double tot = 0.0;
+        for( int j = 0; j < J; j++ ){ 
+            tot += mesh[j]->nuSigmaF() * phi_old[j] * mesh[j]->dz(); 
+        }
+        for( int j = 0; j < J; j++ ){ 
+            phi[j] /= tot; 
+        }
+
+        //======================================================================
+        // Update lambda
+        //======================================================================
+        
+        // Revert tilded material
+        for( auto m : material ){ m->revert_tilde( zeta ); }
+
+        // Current: left
+        double J_left = 0.0;
+        for( int n = 0; n < N; n++ ){ J_left += mu[n] * psi[0][n]; }
+        
+        // Current: right
+        double J_right = 0.0;
+        for( int n = 0; n < N; n++ ){ J_right += mu[n] * psi.back()[n]; }
+        
+        // Absorption
+        double abs = 0.0;
+        for( int j = 0; j < J; j++ ){ 
+            abs += mesh[j]->SigmaA() * phi_old[j] * mesh[j]->dz(); 
+        }
+
+        // Fission neutrons
+        double nufis = 0.0;
+        for( int j = 0; j < J; j++ ){ 
+            nufis += mesh[j]->nuSigmaF() * phi_old[j] * mesh[j]->dz(); 
+        }
+
+        // Update lambda
+        lambda = ( J_right - J_left + abs ) / nufis;
+        
+        // Set W-hift
+        zeta = wielandt_shift( ws_scale, ws_subtract, ws_min, 
+                                      lambda_vec.back() , lambda );
+
+        //======================================================================
+        // Maximum relative error and spectral radius estimate
+        //======================================================================
+       
+        // error: phi
+        error = 0.0;
+        for( int j = 0; j < J; j++ ){
+            // Now phi_old holds the absolute difference between iterates
+            phi_old[j] = std::abs( phi[j] - phi_old[j] );
+            double val = phi_old[j] / ( std::abs(phi[j]) + epsilon*epsilon );
+            if( val > error ){ error = val; }
+        }
+
+        // error: lambda
+        error_lambda = std::abs( lambda - lambda_vec.back() );
+
+        // Spectral radius
+        rho_num = norm_2( phi_old, mesh );
+        rho.push_back( rho_num/rho_denom );
+        rho_denom = rho_num;
+        
+        // Push new lambda and zeta
+        lambda_vec.push_back(lambda);
+        zeta_vec.push_back(zeta);
+
+    } while ( error > epsilon || error_lambda > epsilon);
+        
+    // Some outputs
+    N_iter = rho.size();
+    std::cout<< "Steady-state eigenvalue source iteration done!\n";
+    std::cout<< "Criticality: " << 1.0/lambda_vec.back()  << "\n";
+    std::cout<< "Number of iterations: " << N_iter << "\n";
+    std::cout<< "Iteration matrix spectral radius: " << rho.back() << "\n";
+}
+
+//==============================================================================
 // Steady state
 //==============================================================================
 

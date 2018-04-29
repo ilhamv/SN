@@ -19,6 +19,16 @@ void Material::revert_augment( const double aug )
     m_SigmaT -= aug;
     m_SigmaA -= aug;
 }
+void Material::set_tilde( const double zeta )
+{
+    m_SigmaS += zeta * m_nuSigmaF;
+    m_SigmaA = m_SigmaT - m_SigmaS;
+}
+void Material::revert_tilde( const double zeta )
+{
+    m_SigmaS -= zeta * m_nuSigmaF;
+    m_SigmaA = m_SigmaT - m_SigmaS;
+}
 
 //==============================================================================
 // Region

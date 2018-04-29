@@ -41,7 +41,12 @@ std::shared_ptr<T> find_by_id( const std::vector<std::shared_ptr<T>>& vec,
 //==========================================================================
 
 double norm_2( const std::vector<double> v );
+double norm_2( const std::vector<double> v, 
+               const std::vector<std::shared_ptr<Region>>& mesh );
 void legendre_compute_glr ( int n, double x[], double w[] );
+double wielandt_shift( const double ws_scale, const double ws_subtract,
+                       const double ws_min, const double lambda_old,
+                       const double lambda_new );
 
 
 #endif // _ALGORITHM_H

@@ -15,21 +15,28 @@ class Material
     private:
         const int         m_id;
         const std::string m_name;
-        const double      m_SigmaS;
+        double            m_SigmaS;
         double            m_SigmaT;
         double            m_SigmaA;
+        double            m_nuSigmaF;
+
     public:
         Material( const int i, const std::string n, const double t, 
-                  const double s ): 
-            m_id(i), m_name(n), m_SigmaS(s), m_SigmaT(t), m_SigmaA(t-s) {};
+                  const double s, const double nf ): 
+            m_id(i), m_name(n), m_SigmaS(s), m_SigmaT(t), m_SigmaA(t-s),
+            m_nuSigmaF(nf) {};
         ~Material() {};
         int id() { return m_id; }
         std::string name() { return m_name; }
         double SigmaT() { return m_SigmaT; }
         double SigmaS() { return m_SigmaS; }
         double SigmaA() { return m_SigmaA; }
+        double nuSigmaF() { return m_nuSigmaF; }
+
         void time_augment( const double aug );
         void revert_augment( const double aug );
+        void set_tilde( const double zeta );
+        void revert_tilde( const double zeta );
 };
 
 
@@ -56,6 +63,7 @@ class Region
         double SigmaT() { return M->SigmaT(); }
         double SigmaS() { return M->SigmaS(); }
         double SigmaA() { return M->SigmaA(); }
+        double nuSigmaF() { return M->nuSigmaF(); }
         double dz() { return r_dz; }
         double tau() { return r_tau; }
         double Q() { return r_Q; }

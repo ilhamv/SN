@@ -1,0 +1,32 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+
+
+<N> 16 </N>
+<epsilon> 1E-8 </epsilon>
+<Accelerator type="IDSA"/>
+
+<eigenvalue>
+    <shift param="0.0 0.0 0.0"/>
+</eigenvalue>
+
+<materials>
+    <material id="1" name="fuel">
+        <total     xs="1.5347"/>
+        <scatter   xs="1.3269"/>
+        <nufission xs="0.2080"/>
+    </material>
+</materials>
+
+
+<region method="SC">
+    <space> 5.0 </space>
+    <mesh> 50 </mesh>
+    <material> 1 </material>
+</region>
+
+
+<bc> 
+    <left  type="vacuum"/>
+    <right type="reflective"/>
+</bc>
+

@@ -60,6 +60,24 @@ int main( int argc, char* argv[] )
    
 
     //==========================================================================
+    // Eigenvalue mode
+    //==========================================================================
+
+    bool eigen = false;
+    double ws_scale, ws_subtract, ws_min;
+    pugi::xml_node input_eigen = input_file.child("eigenvalue");
+
+    if( input_eigen ){
+        eigen = true;
+        std::vector<double> ws = parse_vector<double>
+                     ( input_eigen.child("shift").attribute("param").value() );
+        ws_scale    = ws[0];
+        ws_subtract = ws[1];
+        ws_min      = ws[2];
+    }
+
+
+    //==========================================================================
     // Materials
     //==========================================================================
     
@@ -72,8 +90,13 @@ int main( int argc, char* argv[] )
                                         attribute("xs").as_double();
         const double      m_scatter = m.child("scatter").
                                         attribute("xs").as_double();
+        double m_nufission = 0.0;
+        if( m.child("nufission") ){
+            m_nufission = m.child("nufission").attribute("xs").as_double();
+        }
         material.push_back( std::make_shared<Material>( m_id, m_name, 
-                                                        m_total, m_scatter ) );
+                                                        m_total, m_scatter,
+                                                        m_nufission ) );
     }
 
 
@@ -92,8 +115,10 @@ int main( int argc, char* argv[] )
                                     ( input_region.child_value("mesh") );
     const std::vector<int> r_material = parse_vector<int>
                                         ( input_region.child_value("material"));
-    const std::vector<double> r_Q = parse_vector<double>
-                                    ( input_region.child_value("source") );
+    std::vector<double> r_Q( r_space.size(), 0.0 );
+    if( !eigen ){
+        r_Q = parse_vector<double>( input_region.child_value("source") );
+    }
     const int N_region = r_space.size();
 
     // Space discretization method (Steady state only)
@@ -262,11 +287,20 @@ int main( int argc, char* argv[] )
     std::vector<std::vector<double>> psi; // Cell-edge angular flux
     std::vector<double> rho;              // Spectral radius
     int                 N_iter;           // # of iterations
+    std::vector<double> lambda;           // Eigen value
+    std::vector<double> zeta;             // W-shift
 
-    if( !TD ){
+    if( !TD && !eigen ){
         source_iteration( N_iter, epsilon, mesh, region, mu, w, BC_left, 
                           BC_right, phi, psi, rho, space_method, 
                           accelerator_type, beta);
+    }
+
+    if( eigen ){
+        eigenvalue_solver( N_iter, epsilon, mesh, region, mu, w, BC_left, 
+                           BC_right, phi, psi, rho, space_method, 
+                           accelerator_type, beta, lambda, zeta, ws_scale,
+                           ws_subtract, ws_min, material );
     }
     
 
@@ -278,7 +312,7 @@ int main( int argc, char* argv[] )
     std::vector<std::vector<double>> phi_t; // Cell-average scalar flux,
                                             //   at each time step
 
-    if( TD ){
+    if( TD && !eigen ){
         if( TD_method == "implicit" ){
             source_iteration_TD_implicit( epsilon, mesh, material, region, mu, 
                                           w, BC_left, BC_right, speed, dt, 
@@ -368,13 +402,29 @@ int main( int argc, char* argv[] )
             }
         }
         dataset.write(phi.data(), type_double);
+
+        if( eigen ){
+            // lambda
+            dims[0] = lambda.size();
+            space_vector = H5::DataSpace(1,dims);
+            dataset = output.createDataSet( "lambda",type_double,
+                                            space_vector);
+            dataset.write(lambda.data(), type_double);
+            
+            // zeta
+            dims[0] = zeta.size();
+            space_vector = H5::DataSpace(1,dims);
+            dataset = output.createDataSet( "zeta",type_double,
+                                            space_vector);
+            dataset.write(zeta.data(), type_double);
+        }
     }
     
     //==========================================================================
     // Time dependent outputs
     //==========================================================================
 
-    if( TD ){
+    if( TD && !eigen ){
         phi.resize((K+1)*J);
         for( int k = 0; k < K+1; k++ ){
             for( int j = 0; j < J; j++ ){

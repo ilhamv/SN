@@ -6,6 +6,27 @@
 
 #include "Objects.h"
 
+void eigenvalue_solver( int& N_iter,
+                        const double epsilon,
+                        const std::vector<std::shared_ptr<Region>>& mesh,
+                        const std::vector<std::shared_ptr<Region>>& region,
+                        const std::vector<double>& mu, 
+                        const std::vector<double>& w,
+                        const std::shared_ptr<BC>& BC_left,
+                        const std::shared_ptr<BC>& BC_right,
+                        std::vector<double>& phi,
+                        std::vector<std::vector<double>>& psi,
+                        std::vector<double>& rho,
+                        const std::string space_method,
+                        const std::string accelerator_type,
+                        const double beta,
+                        std::vector<double>& lambda,
+                        std::vector<double>& zeta,
+                        const double ws_scale,
+                        const double ws_subtract,
+                        const double ws_min,
+                        const std::vector<std::shared_ptr<Material>>& material );
+
 void source_iteration( int& N_iter,
                        const double epsilon,
                        const std::vector<std::shared_ptr<Region>>& mesh,
